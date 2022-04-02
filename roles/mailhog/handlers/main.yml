@@ -1,0 +1,5 @@
+- name: reload systemctl
+  command: systemctl daemon-reload
+
+- name: restart mailhog
+  service: name=mailhog state=restarted enabled=yes

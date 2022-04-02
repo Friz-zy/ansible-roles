@@ -1,0 +1,28 @@
+- name: Create the hosts file for all machines.
+  lineinfile: dest=/etc/hosts line="{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ item }}"
+  with_items: '{{ groups.elk }}'
+
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - openjdk-11-jdk
+    - elasticsearch
+
+- name: Configure java heap size
+  lineinfile:
+    dest: /etc/elasticsearch/jvm.options
+    regexp: "^{{ item }}"
+    line: "{{ item }}{{ (ansible_memtotal_mb/2) | round | int }}m"
+    state: present
+  with_items:
+    - '-Xms'
+    - '-Xmx'
+  notify: restart elasticsearch
+
+- name: Initial Elasticsearch configuration.
+  template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+  notify: restart elasticsearch
+
+- meta: flush_handlers

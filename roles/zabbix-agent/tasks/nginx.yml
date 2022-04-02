@@ -1,0 +1,63 @@
+---
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-nginx.conf
+  notify: restart zabbix-agent
+
+- name: Copy addition zabbix check script
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - nginx-check.sh
+
+- name: Check that /etc/nginx/sites-enabled directory exists
+  stat: path=/etc/nginx/sites-enabled
+  register: nginx_sites_enabled
+
+- name: Copy addition zabbix check nginx config
+  copy:
+    src: "{{ item }}"
+    dest: /etc/nginx/sites-enabled/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - nginx.conf
+  when: nginx_sites_enabled.stat.exists
+  notify: reload nginx
+
+- name: Copy addition zabbix check nginx config
+  copy:
+    src: "{{ item }}"
+    dest: /etc/nginx/conf.d/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - nginx.conf
+  when: not nginx_sites_enabled.stat.exists
+  notify: reload nginx
+
+- name: Reload nginx before adding template into host
+  meta: flush_handlers
+
+- name: Get credentials from Zabbix server
+  command: cat /root/.zabbix.creds
+  register: credentials
+  run_once: true
+  delegate_to: "{{ zabbix_server }}"
+  check_mode: no    # execute even in dry-run mode
+
+- name: Add nginx template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-Nginx"

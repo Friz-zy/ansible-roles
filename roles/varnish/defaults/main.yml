@@ -1,0 +1,2 @@
+varnish_storage_backend_option: 'malloc,256m'
+varnish_ttl_option: 120

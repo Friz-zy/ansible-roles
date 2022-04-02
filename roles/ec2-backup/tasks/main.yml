@@ -1,0 +1,18 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Copy backup script
+  copy:
+    src: ec2-automate-backup.sh
+    dest: /root/ec2-automate-backup.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create cronjob
+  cron:
+    name: daily ec2 backup
+    minute: 0
+    hour: 21
+    user: root
+    job: "/root/ec2-automate-backup.sh -r eu-central-1 -s running -n -u -p -k 7 > /root/ec2-backup.log"

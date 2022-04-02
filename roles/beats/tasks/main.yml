@@ -1,0 +1,24 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+
+- name: Create log directory
+  file:
+    path: /var/log/beats
+    state: directory
+    mode: '0755'
+
+- include: filebeat.yml
+  when: filebeat | default('false') | bool
+
+- include: metricbeat.yml
+  when: metricbeat | default('false') | bool
+
+- include: packetbeat.yml
+  when: packetbeat | default('false') | bool
+
+- include: heartbeat.yml
+  when: heartbeat | default('false') | bool
+

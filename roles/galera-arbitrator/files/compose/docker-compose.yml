@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  galera-arbitrator:
+    build: .
+    image: galera-arbitrator:latest
+    hostname: galera-arbitrator
+    container_name: galera-arbitrator
+    #ports:
+      #- '4567:4567'
+    #volumes:
+    #  - ./garbd/data:/tmp  # this directory should have 777 mode
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+networks:
+  default:
+    external:
+      name: ingress-shared

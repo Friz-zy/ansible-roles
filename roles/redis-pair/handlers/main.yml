@@ -1,0 +1,8 @@
+- name: reload exportfs
+  shell: exportfs -ra
+
+- name: mount all
+  shell: mount -a
+
+- name: restart redis-server
+  service: name=redis-server state=restarted enabled=yes

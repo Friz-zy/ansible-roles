@@ -1,0 +1,19 @@
+server {
+    listen 80;
+    server_name {{ item }};
+
+    access_log      /var/log/{{ letsencrypt_nginx_binary }}/{{ item }}-access.log;
+    error_log       /var/log/{{ letsencrypt_nginx_binary }}/{{ item }}-error.log error;
+
+    charset utf-8;
+    index index.html index.htm index.php;
+
+    location /.well-known/acme-challenge {
+        root {{ letsencrypt_path }};
+        try_files $uri $uri/ =404;
+    }
+
+    location / {
+        rewrite ^ https://{{ item }}$request_uri? permanent;
+    }
+}

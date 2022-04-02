@@ -1,0 +1,20 @@
+---
+- name: Add zabbix gpg key
+  apt_key:
+    url: https://repo.zabbix.com/zabbix-official-repo.key
+    state: present
+
+- name: Add zabbix repo
+  apt_repository:
+    repo: deb https://repo.zabbix.com/zabbix/{{ zabbix_version }}/{{ ansible_distribution | lower }} bionic main
+    state: present
+
+- name: Install zabbix-agent packages
+  apt: name={{ item }} state=present update_cache=yes cache_valid_time=60
+  with_items:
+    - zabbix-agent
+    - zabbix-sender
+    - zabbix-get
+    - wget
+    - netcat
+    #- redis-tools

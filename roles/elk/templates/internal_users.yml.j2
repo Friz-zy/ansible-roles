@@ -1,0 +1,66 @@
+---
+# This is the internal user database
+# The hash value is a bcrypt hash and can be generated with plugin/tools/hash.sh
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+# Define your internal users here
+
+admin:
+  hash: "{{ elk_user_admin_password | password_hash('bcrypt') }}"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "admin user"
+
+kibanaserver:
+  hash: "{{ elk_user_kibanaserver_password | password_hash('bcrypt') }}"
+  reserved: true
+  description: "kibanaserver user"
+
+kibanaro:
+  hash: "{{ elk_user_kibanaro_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "kibanauser"
+  - "readall"
+  description: "kibanaro user"
+
+logstash:
+  hash: "{{ elk_user_logstash_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "logstash"
+  description: "logstash user"
+
+readall:
+  hash: "{{ elk_user_readall_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "readall"
+  description: "readall user"
+
+snapshotrestore:
+  hash: "{{ elk_user_snapshotrestore_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "snapshotrestore"
+  description: "snapshotrestore user"
+
+apm:
+  hash: "{{ elk_user_apm_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "logstash"
+  #- "apm"
+  description: "apm user"
+
+beats:
+  hash: "{{ elk_user_beats_password | password_hash('bcrypt') }}"
+  reserved: false
+  backend_roles:
+  - "logstash"
+  #- "beats"
+  description: "beats user"

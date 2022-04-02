@@ -1,0 +1,37 @@
+---
+- name: Copy compose configs
+  copy:
+    src: compose/
+    dest: "{{ compose_dir }}"
+  notify: restart nginx
+
+- name: Copy nginx configs
+  copy:
+    src: nginx/
+    dest: /etc/nginx
+  notify: restart nginx
+
+- name: Copy nginx systemd unit
+  template:
+    src: nginx.service.j2
+    dest: /lib/systemd/system/nginx.service
+  notify: reload systemctl
+
+- name: Create nginx logs folder
+  file:
+    path: "/var/log/nginx"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: '0755'
+
+- name: Copy nginx logrotate config
+  copy:
+    src: nginx.logrotate
+    dest: /etc/logrotate.d/nginx
+
+#- name: Create docker network
+#  docker_network:
+#    name: ingress-shared
+#    attachable: yes
+#    internal: no

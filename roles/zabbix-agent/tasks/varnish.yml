@@ -1,0 +1,25 @@
+---
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-varnish.conf
+  notify: restart zabbix-agent
+
+- name: Add zabbix to varnish group if it's available
+  shell: id varnish && usermod -a -G varnish zabbix
+
+- name: Get credentials from Zabbix server
+  command: cat /root/.zabbix.creds
+  register: credentials
+  run_once: true
+  delegate_to: "{{ zabbix_server }}"
+  check_mode: no    # execute even in dry-run mode
+
+- name: Add varnish template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-Varnish"

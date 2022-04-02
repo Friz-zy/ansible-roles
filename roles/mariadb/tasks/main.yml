@@ -1,0 +1,65 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'rpm'
+
+- name: Check Mysql Daemon config files
+  find:
+    paths: '/etc/mysql/'
+    patterns: '*.cnf'
+    recurse: yes
+    contains: '^\[mysqld\]$'
+  register: mysqld_config
+
+- name: Check Galera config files
+  find:
+    paths: '/etc/mysql/'
+    patterns: '*.cnf'
+    recurse: yes
+    contains: '^\[galera\]$'
+  register: galera_config
+
+- name: Update Mysql default config
+  lineinfile:
+    dest: "{{ item.0.path }}"
+    regexp: '^#?\s*{{ item.1.re }}\s*=.*$'
+    line: '{{ item.1.re }} = {{ item.1.value }}'
+    backup: yes
+    insertafter: '[mysqld]'
+  with_nested:
+    - "{{ mysqld_config.files }}"
+    - [{ re: 'bind-address', value: '{{  mysql_conf_bind_address  }}'},
+       { re: 'relay_log_space_limit', value: '{{  mysql_conf_relay_log_space_limit  }}'},
+       { re: 'log_bin', value: '{{  mysql_conf_log_bin  }}'},
+       { re: 'expire_logs_days', value: '{{  mysql_conf_expire_logs_days  }}'},
+       { re: 'max_binlog_size', value: '{{  mysql_conf_max_binlog_size  }}'}]
+#  notify: restart mysql
+
+- name: Update Galera config
+  lineinfile:
+    dest: "{{ item.0.path }}"
+    regexp: '^#?\s*{{ item.1.re }}\s*=.*$'
+    line: '{{ item.1.re }} = {{ item.1.value }}'
+    backup: yes
+    insertbefore: '#?\s*wsrep_on*'
+  with_nested:
+    - "{{ galera_config.files }}"
+    - [{ re: 'bind-address', value: '{{  mysql_conf_bind_address  }}'},
+      { re: 'wsrep_on', value: '{{  mysql_conf_wsrep_on  }}'},
+      { re: 'wsrep_cluster_address', value: '{{  mysql_conf_wsrep_cluster_address  }}'},
+      { re: 'wsrep_cluster_name', value: '{{  mysql_conf_wsrep_cluster_name  }}'},
+      { re: 'wsrep_provider', value: '/usr/lib/galera/libgalera_smm.so'},
+      { re: 'binlog_format', value: 'row'},
+      { re: 'default_storage_engine', value: 'InnoDB'},
+      { re: 'innodb_autoinc_lock_mode', value: '2'}]
+#  notify: restart mysql
+
+- name: Create monitoring user
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: "{{ mysql_monitoring_user }}"
+    host: '%'
+    password: "{{ mysql_monitoring_pass }}"
+    priv: "{{ mysql_monitoring_grants }}"
+    state: present

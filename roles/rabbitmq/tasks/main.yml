@@ -1,0 +1,24 @@
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Pin nodename
+  lineinfile:
+    path: /etc/rabbitmq/rabbitmq-env.conf
+    regexp: '^NODENAME'
+    line: 'NODENAME=rabbit@{{ ansible_hostname }}'
+    create: yes
+  notify: restart rabbitmq-server
+
+- name: Enable RabbitMQ web board plugin
+  shell: rabbitmq-plugins enable rabbitmq_management
+
+- meta: flush_handlers
+
+- name: Create RabbitMQ admin user
+  shell: |
+    rabbitmqctl add_user {{ rabbitmq_user }} {{ rabbitmq_password }}
+    rabbitmqctl set_user_tags {{ rabbitmq_user }} administrator
+    rabbitmqctl set_permissions -p / {{ rabbitmq_user }} ".*" ".*" ".*"

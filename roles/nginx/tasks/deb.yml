@@ -1,0 +1,30 @@
+---
+- name: Install nginx
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - nginx-full
+
+- name: Generate dhparams
+  shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048 && chmod 600 /etc/nginx/dhparams.pem
+  args:
+    creates: /etc/nginx/dhparams.pem
+
+- name: Generate dhparams into /etc/ssl/certs
+  shell: openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+  args:
+    creates: /etc/ssl/certs/dhparam.pem
+
+- name: Remove default nginx config
+  file: name=/etc/nginx/sites-enabled/default state=absent
+
+- name: Fix pam auth
+  lineinfile:
+    path: /etc/pam.d/nginx
+    line: '@include common-auth'
+    create: True
+
+- name: Add www-data into shadow
+  user:
+    name: www-data
+    groups: shadow
+    append: yes

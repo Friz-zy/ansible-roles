@@ -1,0 +1,5 @@
+---
+elk_dns:
+  site: elk.example.com
+elk_user_agent_password: ''
+elk_user_kibanaro_password: ''

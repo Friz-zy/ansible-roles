@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  nginx:
+      image: nginx
+      container_name: nginx
+      volumes:
+        - /etc/nginx:/etc/nginx
+        - /etc/letsencrypt:/etc/letsencrypt
+        - /etc/ssl:/etc/ssl
+        - /var/log/nginx:/var/log/nginx
+        - /var/www:/var/www
+        - /var/www:/usr/share/nginx
+      ports:
+        - 80:80
+        - 443:443
+        - 10081:10081 # zabbix checks
+      command: nginx -g 'daemon off; master_process on;'
+      restart: unless-stopped
+      logging:
+        driver: json-file
+        options:
+            max-size: "100m"
+            max-file: "5"
+
+networks:
+  default:
+    external:
+      name: ingress-shared

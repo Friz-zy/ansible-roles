@@ -1,0 +1,68 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Create the symbol link in /etc for openresty nginx conf
+  file:
+    src: "{{ openresty_config_path }}"
+    dest: /etc/openresty
+    state: link
+
+- name: Create openresty logs directory
+  file: name=/var/log/openresty state=directory
+
+- name: Create openresty sites directory
+  file: name={{ openresty_sites_path }} state=directory
+
+- name: Copy custome nginx.conf
+  copy:
+    src: nginx.conf
+    dest: /etc/openresty/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart openresty
+
+- name: Copy config
+  copy:
+    src: "{{item}}"
+    dest: "/etc/nginx/conf.d/{{item}}"
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart openresty
+  with_items:
+    - 0-basic.conf
+    - 0-cache.conf
+    - 0-gzip.conf
+    - 0-log_format.conf
+    - 0-real_ip.conf
+    - 0-request_id.conf
+    - 0-security.conf
+    - 0-ssl.conf
+
+- name: Copy custom openresty logrotate config
+  copy:
+    src: openresty.logrotate
+    dest: /etc/logrotate.d/openresty
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Generate dhparams into /etc/ssl/certs
+  shell: openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+  args:
+    creates: /etc/ssl/certs/dhparam.pem
+
+- name: Restart openresty before other roles
+  meta: flush_handlers
+
+- name: Create reload_openresty script in /usr/local/sbin
+  copy:
+    content: |
+        #!/bin/bash
+        service openresty reload
+    dest: /usr/local/sbin/reload_openresty
+    mode: 755

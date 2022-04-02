@@ -1,0 +1,23 @@
+---
+- name: Add MariaDB server gpg key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: "0xF1656F24C74CD1D8"
+
+- name: Add MariaDB server repo
+  apt_repository:
+    repo: deb http://mariadb.mirrors.ovh.net/MariaDB/repo/10.5/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} main
+    state: present
+
+- name: Install MariaDB
+  apt:
+    state: present
+    update_cache: yes
+    name:
+      - mariadb-server
+      - mariadb-client
+      - mariadb-backup
+      - mariadb-common
+      - galera-4
+      - python*-pymysql
+

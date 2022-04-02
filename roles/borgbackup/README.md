@@ -1,0 +1,16 @@
+distro types: deb, rpm
+
+install: borgbackup
+
+modify: -
+
+restart: -
+
+vars:
+backup_create: []
+backup_exclude: []
+borgbackup_prune: ''
+borgbackup_server: ''
+borgbackup_user: 'root'
+borgbackup_path: '~/borgbackup'
+borgbackup_ssh_key: '~/.ssh/id_rsa_borgbackup'

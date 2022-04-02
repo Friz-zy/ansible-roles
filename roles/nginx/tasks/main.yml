@@ -1,0 +1,41 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Copy custom nginx.conf
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart nginx
+
+- name: Copy config
+  copy:
+    src: "{{item}}"
+    dest: "/etc/nginx/conf.d/{{item}}"
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart nginx
+  with_items:
+    - 0-basic.conf
+    - 0-cache.conf
+    - 0-gzip.conf
+    - 0-log_format.conf
+    - 0-real_ip.conf
+    - 0-request_id.conf
+    - 0-security.conf
+    - 0-ssl.conf
+
+- name: Copy custom default.conf
+  copy:
+    src: default.conf
+    dest: /etc/nginx/sites-enabled/default.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart nginx

@@ -1,0 +1,52 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - filebeat=7.3.0
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - filebeat-7.3.0
+  when: ansible_pkg_mgr == 'yum'
+
+- name: Modify filebeat systemd service.
+  copy:
+    src: filebeat.service
+    dest: /lib/systemd/system/filebeat.service
+  notify: reload systemd
+  when: ansible_service_mgr == 'systemd'
+
+- name: Initial filebeat configuration.
+  template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    mode: 0640
+  notify: restart filebeat
+
+- name: Modify filebeat nginx module.
+  copy:
+    src: filebeat_nginx_access_ingest.json
+    dest: /usr/share/filebeat/module/nginx/access/ingest/default.json
+  notify: restart filebeat
+
+- meta: flush_handlers
+
+- name: enable modules
+  shell: |
+    filebeat modules enable system
+    filebeat modules enable nginx
+    # TODO: need to configure properly
+    filebeat modules enable apache
+    filebeat modules enable iptables
+    filebeat modules enable mysql
+    filebeat modules enable postgresql
+    filebeat modules enable rabbitmq
+    filebeat modules disable redis
+    filebeat modules disable elasticsearch
+
+
+- name: Modify filebeat nginx module config.
+  copy:
+    src: filebeat_module_nginx.yml
+    dest: /etc/filebeat/modules.d/nginx.yml

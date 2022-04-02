@@ -1,0 +1,27 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - heartbeat-elastic=7.3.0
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - heartbeat-elastic-7.3.0
+  when: ansible_pkg_mgr == 'yum'
+
+- name: Modify heartbeat systemd service.
+  copy:
+    src: heartbeat.service
+    dest: /lib/systemd/system/heartbeat-elastic.service
+  notify: reload systemd
+  when: ansible_service_mgr == 'systemd'
+
+- name: Initial heartbeat configuration.
+  template:
+    src: heartbeat.yml.j2
+    dest: /etc/heartbeat/heartbeat.yml
+    mode: 0640
+  notify: restart heartbeat-elastic
+
+- meta: flush_handlers

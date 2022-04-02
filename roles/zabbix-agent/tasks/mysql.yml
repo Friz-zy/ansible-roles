@@ -1,0 +1,81 @@
+---
+- name: Install python mysql module for ansible
+  pip: name=pymysql
+
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-mysql.conf
+  notify: restart zabbix-agent
+
+- name: Copy addition zabbix check script
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - mysql.sh
+    - mysql-list.py
+
+- name: Allow 'zabbix' user to have passwordless mysql utils
+  lineinfile:
+    dest: /etc/sudoers.d/zabbix
+    state: present
+    line: 'zabbix ALL = NOPASSWD: /usr/bin/mysql, /usr/bin/mysqladmin, /usr/local/bin/zabbix-mysql-list.py'
+    validate: 'visudo -cf %s'
+    create: yes
+    mode: 0440
+
+- name: Reload zabbix before adding template into host
+  meta: flush_handlers
+
+- name: Get credentials from Zabbix server
+  command: cat /root/.zabbix.creds
+  register: credentials
+  run_once: true
+  delegate_to: "{{ zabbix_server }}"
+  check_mode: no    # execute even in dry-run mode
+
+- name: Add mysql template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-Mysql"
+
+- name: Check that the /root/.my.cnf exists
+  stat:
+    path: /root/.my.cnf
+  register: mycnf_stat_result
+
+- name: Check that the mysql socket exists
+  stat:
+    path: '{{ item }}'
+  register: mysql_socket_stat_result
+  with_items:
+    - "/var/lib/mysql/mysql.sock"
+    - "/run/mysqld/mysqld.sock"
+
+- name: Check replication slave status with /root/.my.cnf
+  mysql_replication: mode=getslave
+  ignore_errors: true
+  register: slave
+  when: mycnf_stat_result.stat.exists
+
+- name: Check replication slave status with socket
+  mysql_replication:
+    mode: getslave
+    login_unix_socket: "{{ item.invocation.module_args.path }}"
+  ignore_errors: true
+  register: slave
+  when: not mycnf_stat_result.stat.exists and item.stat.exists
+  with_items: "{{ mysql_socket_stat_result.results }}"
+
+- name: Add mysql slave template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-Mysql-Slave"
+  when: slave is succeeded

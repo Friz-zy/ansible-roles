@@ -1,0 +1,6 @@
+- name: reload systemctl
+  command: systemctl daemon-reload
+
+- name: restart netfilter-persistent
+  service: name=netfilter-persistent state=restarted enabled=yes
+

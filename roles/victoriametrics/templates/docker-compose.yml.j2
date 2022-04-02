@@ -1,0 +1,74 @@
+version: '3.5'
+services:
+  vmauth:
+    container_name: vmauth
+    image: victoriametrics/vmauth:v1.58.0
+    ports: []
+      #- 8427:8427
+    volumes:
+      - ./configs:/etc/configs:ro
+    command:
+      - '--auth.config=/etc/configs/auth/auth.yml'
+      - '--http.connTimeout=10m' # default is 2m0s
+    restart: unless-stopped
+
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:v1.58.0
+    ports: []
+      #- 8429:8429
+    volumes:
+      - "{{vm_data_dir}}/vmagentdata:/vmagentdata"
+      - ./configs:/etc/configs:ro
+    command:
+      - '--promscrape.config=/etc/configs/prometheus/prometheus.yml'
+      - '--remoteWrite.url=http://victoriametrics:8428/api/v1/write'
+    restart: unless-stopped
+
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics:v1.58.0
+    ports: []
+      #- 8428:8428
+      #- 8089:8089
+      #- 8089:8089/udp
+      #- 2003:2003
+      #- 2003:2003/udp
+      #- 4242:4242
+    volumes:
+      - "{{vm_data_dir}}/vmdata:/storage"
+      - ./configs:/etc/configs:ro
+    command:
+      - '--storageDataPath=/storage'
+      - '--graphiteListenAddr=:2003'
+      - '--opentsdbListenAddr=:4242'
+      - '--httpListenAddr=:8428'
+      - '--influxListenAddr=:8089'
+      - '--retentionPeriod=24' # 24 month of storing metrics
+      - '--maxConcurrentInserts=10000' # default is 16
+      - '--insert.maxQueueDuration=5m' # default is 1m0s
+      - '--search.maxQueueDuration=60s' # default is 10s
+      - '--search.maxQueryDuration=60s' # default is 30s
+      - '-search.cacheTimestampOffset=30m' # default is 5m
+      - '--http.connTimeout=10m' # default is 2m0s
+    restart: unless-stopped
+
+  vmalert:
+    container_name: vmalert
+    image: victoriametrics/vmalert:v1.58.0
+    ports: []
+      #- 8880:8880
+    volumes:
+      - ./configs:/etc/configs:ro
+    command:
+      - '--datasource.url=http://victoriametrics:8428/'
+      - '--remoteRead.url=http://victoriametrics:8428/'
+      - '--remoteWrite.url=http://victoriametrics:8428/'
+      - '--notifier.url=http://alertmanager:9093/'
+      - '--rule=/etc/configs/alerts/*.yml'
+    restart: unless-stopped
+
+networks:
+  default:
+    external:
+      name: ingress-shared

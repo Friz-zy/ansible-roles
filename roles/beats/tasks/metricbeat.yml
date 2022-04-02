@@ -1,0 +1,32 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - metricbeat=7.3.0
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - metricbeat-7.3.0
+  when: ansible_pkg_mgr == 'yum'
+
+- name: Modify metricbeat systemd service.
+  copy:
+    src: metricbeat.service
+    dest: /lib/systemd/system/metricbeat.service
+  notify: reload systemd
+  when: ansible_service_mgr == 'systemd'
+
+- name: Initial metricbeat configuration.
+  template:
+    src: metricbeat.yml.j2
+    dest: /etc/metricbeat/metricbeat.yml
+    mode: 0640
+  notify: restart metricbeat
+
+- name: Copy metricbeat system module config
+  copy:
+    src: metricbeat_module_system.yml
+    dest: /etc/metricbeat/modules.d/system.yml
+
+- meta: flush_handlers

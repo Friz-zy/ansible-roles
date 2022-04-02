@@ -1,0 +1,56 @@
+---
+- name: Install java
+  package: name={{ item }} state=present
+  with_items:
+    - default-jdk
+
+- name: Create kafka system user
+  user:
+    name: kafka
+    system: yes
+    shell: /bin/bash
+    state: present
+
+- name: Download kafka sources
+  unarchive:
+    src: http://apache.crihan.fr/dist/kafka/1.1.0/kafka_2.11-1.1.0.tgz
+    dest: /opt
+    remote_src: yes
+    creates: /opt/kafka_2.11-1.1.0
+
+- name: Create link into /opt/kafka
+  file:
+    src: /opt/kafka_2.11-1.1.0
+    dest: /opt/kafka
+    state: link
+
+- name: Create data directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: 0755
+  with_items:
+    - /var/lib/kafka
+    - /var/lib/kafka/data
+
+- name: Copy kafka config
+  template:
+    src: kafka-server.properties.j2
+    dest: /etc/kafka-server.properties
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart kafka
+
+- name: Copy kafka service file
+  template:
+    src: kafka.service.j2
+    dest: /etc/systemd/system/kafka.service
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart systemctl

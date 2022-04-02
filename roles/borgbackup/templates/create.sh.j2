@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Setting this, so the repo does not need to be given on the commandline:
+export BORG_REPO={{ borgbackup_server }}{{ borgbackup_path }}/{{ inventory_hostname }}
+export BORG_CHECK_I_KNOW_WHAT_I_AM_DOING=Y
+
+eval `ssh-agent`
+function cleanup {
+    /bin/kill $SSH_AGENT_PID
+}
+trap cleanup EXIT
+
+ssh-add {{ borgbackup_ssh_key }}
+
+/usr/local/bin/borgbackup-create.sh --no-files-cache --chunker-params=21,23,23,4095 \
+                                    --show-rc \
+                                    --exclude-caches \
+                                    {% for line in backup_exclude %} --exclude '{{ line }}' \
+                                    {% endfor %} \
+                                    ::"{{ borgbackup_user }}-$(date '+%Y-%m-%d')" \
+                                    {% for line in backup_create %} {{ line }} \
+                                    {% endfor %}

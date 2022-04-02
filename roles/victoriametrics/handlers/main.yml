@@ -1,0 +1,26 @@
+- name: reload systemctl
+  command: systemctl daemon-reload
+
+- name: reload nginx
+  service: name=nginx state=restarted enabled=yes
+
+- name: restart vmagent
+  service: name=vmagent state=restarted enabled=yes
+
+- name: restart vmauth
+  service: name=vmauth state=restarted enabled=yes
+
+- name: restart victoriametrics
+  service: name=victoriametrics state=restarted enabled=yes
+
+- name: restart vmbackupmanager
+  service: name=vmbackupmanager state=restarted enabled=yes
+
+- name: restart vmalert
+  service: name=vmalert state=restarted enabled=yes
+
+- name: restart alertmanager
+  service: name=alertmanager state=restarted enabled=yes
+
+- name: restart grafana
+  service: name=grafana state=restarted enabled=yes

@@ -1,0 +1,16 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Check if /lib/systemd/system/netfilter-persistent.service exists
+  stat:
+    path: /lib/systemd/system/netfilter-persistent.service
+  register: np_service
+
+- name: Add 'Before docker.service' into netfilter-persistent systemd service
+  replace:
+    backup: yes
+    dest: /lib/systemd/system/netfilter-persistent.service
+    regexp: '^(Before=(?!.*\bdocker.service\b).*)$'
+    replace: '\1 docker.service'
+  when: np_service.stat.exists
+  notify: reload systemctl

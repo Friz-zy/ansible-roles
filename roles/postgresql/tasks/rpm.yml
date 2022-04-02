@@ -1,0 +1,17 @@
+---
+- name: Add Postgresql repo
+  yum:
+    name: https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-{{ ansible_distribution_major_version }}-x86_64/pgdg-centos96-9.6-3.noarch.rpm
+    state: present
+
+- name: Clean yum metadata
+  command: yum clean all
+
+- name: Install Postgresql
+  yum:
+    name:
+      - postgresql96-server
+      - postgresql96-contrib
+    state: present
+    update_cache: yes
+

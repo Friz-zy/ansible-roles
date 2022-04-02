@@ -1,0 +1,13 @@
+---
+- name: Copy compose configs
+  copy:
+    src: compose/
+    dest: "{{ compose_dir }}"
+  notify: restart mailhog
+
+- name: Copy mailhog systemd unit
+  template:
+    src: mailhog.service.j2
+    dest: /lib/systemd/system/mailhog.service
+  notify: reload systemctl
+

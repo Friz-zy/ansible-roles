@@ -1,0 +1,22 @@
+---
+- name: Add Redis repo
+  apt_repository:
+    repo: ppa:chris-lea/redis-server
+    state: present
+  when:
+    - ansible_distribution == 'Debian'
+    - ansible_distribution == 'Ubuntu' and ansible_distribution_version < '18.04'
+
+- name: Install Redis packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - redis-server
+    - redis-tools
+
+- name: Install NFS server
+  apt: name=nfs-kernel-server state=present update_cache=yes
+  when: redis_role == "slave"
+
+- name: Install NFS client
+  apt: name=nfs-common state=present update_cache=yes
+  when: redis_role == "master"

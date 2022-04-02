@@ -1,0 +1,52 @@
+# https://mariadb.com/kb/en/mariadb-maxscale-24-mariadb-maxscale-configuration-guide/
+
+# Globals
+[maxscale]
+substitute_variables=true
+threads=auto
+
+# this enables external access to the REST API outside of localhost
+# please review / modify for any public / non development environments
+# admin_host=0.0.0.0
+
+# Servers
+{% for host in galera_cluster_address.lstrip('gcomm://').split(',') %}
+[server{{ loop.index }}]
+type=server
+address={{ host.split(':')[0] }}
+port=3306
+protocol=MariaDBBackend
+
+{% endfor %}
+
+[Galera-Monitor]
+type=monitor
+module=galeramon
+servers={% for host in galera_cluster_address.lstrip('gcomm://').split(',') %}
+server{{ loop.index }}
+{%- if not loop.last %},{% endif %}
+{% endfor %}
+
+user=$MARIADB_GALERA_MONITORING_USER
+password=$MARIADB_GALERA_MONITORING_PASSWORD
+monitor_interval=1000
+
+# Galera router service
+[Galera-Service]
+type=service
+router=readwritesplit
+servers={% for host in galera_cluster_address.lstrip('gcomm://').split(',') %}
+server{{ loop.index }}
+{%- if not loop.last %},{% endif %}
+{% endfor %}
+
+user=$MARIADB_GALERA_MONITORING_USER
+password=$MARIADB_GALERA_MONITORING_PASSWORD
+enable_root_user=true
+
+# Galera cluster listener
+[Galera-Listener]
+type=listener
+service=Galera-Service
+protocol=MySQLClient
+port=3306

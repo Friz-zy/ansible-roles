@@ -1,0 +1,22 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - kibana
+
+- name: Initial Kibana configuration.
+  template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    mode: 0640
+    group: kibana
+  notify: restart kibana
+
+- name: Create kibana log file
+  file:
+    path: /var/log/kibana.log
+    state: touch
+    mode: 0644
+    owner: kibana
+    group: kibana
+
+- meta: flush_handlers

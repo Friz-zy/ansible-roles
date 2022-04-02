@@ -1,0 +1,7 @@
+/var/log/curator.log {
+        daily
+        missingok
+        rotate 7
+        notifempty
+        compress
+}

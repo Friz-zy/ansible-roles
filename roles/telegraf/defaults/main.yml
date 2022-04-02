@@ -1,0 +1,66 @@
+telegraf_config_path: /etc/telegraf/telegraf.conf
+telegraf_config_user: telegraf
+docker_socket_path: /run/docker.sock # usually /var/run is a simlink to /run/, so for setup in container we should use /run/docker.sock instead of /var/run/docker.sock
+
+telegraf_defaults:
+  global_tags: []
+  agent:
+    - interval = "10s"
+    - round_interval = true
+    - metric_batch_size = 1000
+    - metric_buffer_limit = 10000
+    - collection_jitter = "0s"
+    - flush_interval = "10s"
+    - flush_jitter = "0s"
+    - precision = ""
+    - debug = false
+    - quiet = false
+    - logtarget = "file"
+    - logfile = ""
+    - logfile_rotation_interval = "0d"
+    - logfile_rotation_max_size = "0MB"
+    - logfile_rotation_max_archives = 5
+    - hostname = "{{inventory_hostname}}"
+    - omit_hostname = false
+  inputs.cpu:
+    - percpu = true
+    - totalcpu = true
+    - collect_cpu_time = false
+    - report_active = false
+  inputs.disk:
+    - '# mount_points = ["/"]'
+    - ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+  inputs.diskio: []
+#  inputs.interrupts: []
+  inputs.kernel: []
+  inputs.mem: []
+  inputs.net:
+    - interfaces = ["eth*", "enp0s[0-1]", "ens*", "lo", "bond*", "wl*"]
+  inputs.processes: []
+  inputs.swap: []
+  inputs.system:
+    - fielddrop = ["uptime_format"]
+  outputs.prometheus_client:
+    - listen = ":9273"
+    - metric_version = 2
+    - '# basic_username = "Foo"'
+    - '# basic_password = "Bar"'
+    - '# ip_range = []'
+    - '# path = "/metrics"'
+    - '# expiration_interval = "60s"'
+    - '# collectors_exclude = ["gocollector", "process"]'
+    - '# string_as_label = true'
+    - '# tls_cert = "/etc/ssl/telegraf.crt"'
+    - '# tls_key = "/etc/ssl/telegraf.key"'
+    - '# tls_allowed_cacerts = ["/etc/telegraf/clientca.pem"]'
+    - '# export_timestamp = false'
+  inputs.procstat:
+    - 'exe = ".*" # `pgrep <exe>`, collect metrics about ALL processes'
+    - cmdline_tag = true
+    - pid_tag = true
+    - 'fieldpass = ["cpu_usage", "memory_usage"] # drop all other metrics'
+#  inputs.docker:
+#    - endpoint = "unix://${HOST_MOUNT_PREFIX}/var/run/docker.sock"
+#    - source_tag = true
+
+telegraf: "{{ telegraf_defaults| combine(telegraf_override|default({}))| combine(telegraf_override_group|default({}))| combine(telegraf_override_host|default({})) }}"

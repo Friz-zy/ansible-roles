@@ -1,0 +1,5 @@
+- name: reload systemctl
+  command: systemctl daemon-reload
+
+- name: restart maxscale
+  service: name=maxscale state=restarted enabled=yes

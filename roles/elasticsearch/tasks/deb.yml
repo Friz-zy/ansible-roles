@@ -1,0 +1,17 @@
+---
+- name: Add Elastic gpg key
+  apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add Elastic repo
+  apt_repository:
+    repo: deb https://artifacts.elastic.co/packages/{{es_version}}.x/apt stable main
+    state: present
+
+- name: Install Elasticsearch packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - openjdk-8-jre
+    - elasticsearch
+

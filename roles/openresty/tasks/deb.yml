@@ -1,0 +1,28 @@
+---
+- name: Add openresty gpg key
+  apt_key:
+    url: https://openresty.org/package/pubkey.gpg
+    state: present
+
+- name: Add openresty repo
+  apt_repository:
+    repo: deb https://openresty.org/package/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} main
+    state: present
+
+- name: Install openresty packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - openresty
+    - luarocks
+
+#- name: Fix pam auth
+#  lineinfile:
+#    path: /etc/pam.d/nginx
+#    line: '@include common-auth'
+#    create: True
+
+#- name: Add www-data into shadow
+#  user:
+#    name: www-data
+#    groups: shadow
+#    append: yes

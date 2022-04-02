@@ -1,0 +1,43 @@
+distro types: deb, rpm
+
+install: zabbix-agent, zabbix-sender, zabbix-get
+
+modify: /etc/zabbix/zabbix_agentd.conf
+
+restart: zabbix-agent zabbix-proxy nginx openresty
+
+vars:  
+zabbix_version: '5.4'
+zabbix_agent_conf_LogFile: "/var/log/zabbix/zabbix_agentd.log"
+zabbix_agent_conf_PidFile: "/var/run/zabbix/zabbix_agentd.pid"
+zabbix_agent_conf_LogFileSize: "0"
+zabbix_agent_conf_DebugLevel: "3"
+zabbix_agent_conf_ListenIP: "0.0.0.0"
+zabbix_agent_conf_ListenPort: "10050"
+zabbix_agent_conf_Server: "127.0.0.1"
+zabbix_agent_conf_ServerActive: "127.0.0.1"
+zabbix_agent_conf_Hostname: "{{ ansible_hostname }}"
+zabbix_agent_conf_HostMetadataItem: "system.uname"
+zabbix_agent_conf_RefreshActiveChecks: "60"
+zabbix_agent_conf_EnableRemoteCommands: "1"
+zabbix_agent_conf_LogRemoteCommands: "1"
+zabbix_agent_discovery_host: "{{ ansible_host }}"
+zabbix_agent_discovery_port: "{{ zabbix_agent_conf_ListenPort }}"
+zabbix_agent_conf_Timeout: 30
+zabbix_agent_conf_StartAgents: 20
+zabbix_proxy_conf_ServerActive: "127.0.0.1"
+zabbix_proxy_conf_StartPollers: 100
+zabbix_proxy_conf_StartPollersUnreachable: 10
+zabbix_proxy_conf_StartHTTPPollers: 50
+zabbix_proxy_conf_UnavailableDelay: 15
+zabbix_proxy_conf_UnreachableDelay: 3
+zabbix_proxy_conf_ConfigFrequency: 60
+zabbix_proxy_conf_ConfigDatabase: zabbix_proxy
+zabbix_proxy_conf_ConfigDbUser: zabbix
+zabbix_proxy_conf_ConfigDbPass: ''
+
+Checks:
+- https://github.com/thecamels/zabbix
+- https://github.com/alfss/zabbix-rabbitmq
+- https://github.com/m4ce/zabbix-mysql
+- https://github.com/lesovsky/zabbix-extensions

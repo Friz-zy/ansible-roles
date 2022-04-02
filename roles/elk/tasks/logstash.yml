@@ -1,0 +1,24 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - logstash
+
+- name: Configure java heap size
+  lineinfile:
+    dest: /etc/logstash/jvm.options
+    regexp: "^{{ item }}"
+    line: "{{ item }}512m"
+    state: present
+  with_items:
+    - '-Xms'
+    - '-Xmx'
+  notify: restart logstash
+
+- name: Initial Logstash configuration.
+  template:
+    src: logstash.yml.j2
+    dest: /etc/logstash/logstash.yml
+    mode: 0640
+  notify: restart logstash
+
+- meta: flush_handlers

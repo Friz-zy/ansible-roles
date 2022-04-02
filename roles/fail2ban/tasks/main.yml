@@ -1,0 +1,11 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'rpm'
+
+- name: Copy initial jail.local
+  copy:
+    dest: /etc/fail2ban/jail.local
+    src: jail.local
+    force: no

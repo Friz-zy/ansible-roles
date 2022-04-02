@@ -1,0 +1,11 @@
+- name: restart zabbix-agent
+  service: name=zabbix-agent state=restarted enabled=yes
+
+- name: restart zabbix-proxy
+  service: name=zabbix-proxy state=restarted enabled=yes
+
+- name: reload nginx
+  service: name=nginx state=reloaded
+
+- name: reload openresty
+  service: name=openresty state=reloaded

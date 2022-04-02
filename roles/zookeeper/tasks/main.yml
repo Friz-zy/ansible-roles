@@ -1,0 +1,26 @@
+---
+- name: Install zookeeper
+  package: name={{ item }} state=present
+  with_items:
+    - zookeeper
+    - zookeeperd
+
+- name: Set zookeeper node id
+  copy:
+    content: '{{ zookeeper_hosts.index(inventory_hostname) }}'
+    dest: /etc/zookeeper/conf/myid
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart zookeeper
+  when: len(zookeeper_hosts) > 1
+
+- name: Copy zookeeper main config
+  template:
+    src: zoo.cfg.j2
+    dest: /etc/zookeeper/conf/zoo.cfg
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify: restart zookeeper

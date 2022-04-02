@@ -1,0 +1,14 @@
+distro types: deb, rpm
+
+install: rsnapshot
+
+modify: -
+
+restart: -
+
+vars:
+backup_create: []
+backup_exclude: []
+rsnapshot_user: 'root'
+rsnapshot_path: '~/rsnapshot'
+rsnapshot_ssh_key: '~/.ssh/id_rsa'

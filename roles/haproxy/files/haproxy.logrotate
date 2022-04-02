@@ -1,0 +1,9 @@
+/var/log/haproxy*.log {
+        daily
+        missingok
+        rotate 7
+        compress
+        notifempty
+        create 0644 syslog adm
+        sharedscripts
+}

@@ -1,0 +1,13 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - apm-server
+
+- name: Initial APM-Server configuration.
+  template:
+    src: apm-server.yml.j2
+    dest: /etc/apm-server/apm-server.yml
+    mode: 0640
+  notify: restart apm-server
+
+- meta: flush_handlers

@@ -1,0 +1,20 @@
+# Stop dance for {{ item }}
+# =======================
+#
+# nginx signals reference doc:
+# http://nginx.org/en/docs/control.html
+#
+[Unit]
+Description={{ item }} service with docker compose
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+WorkingDirectory={{ vm_compose_dir }}
+
+ExecStart=/usr/local/bin/docker-compose up {{ item }}
+ExecStop=/usr/local/bin/docker-compose rm -f -s -v {{ item }}
+
+[Install]
+WantedBy=multi-user.target

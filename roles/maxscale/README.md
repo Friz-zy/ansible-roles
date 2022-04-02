@@ -1,0 +1,13 @@
+distro types: 
+
+install: 
+
+modify: 
+
+restart: systemctl, maxscale
+
+vars:
+compose_dir: /opt/maxscale
+galera_cluster_address: 'gcomm://'
+galera_monitoring_user: monitoring
+galera_monitoring_password: monitoring

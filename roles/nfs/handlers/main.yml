@@ -1,0 +1,7 @@
+- name: restart nfs-kernel-server
+  service: name=nfs-kernel-server state=restarted enabled=yes
+
+- name: mount all
+  command: mount -a
+  args:
+    warn: no

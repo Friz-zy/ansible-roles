@@ -1,0 +1,38 @@
+---
+- name: Add rabbitmq server gpg key
+  rpm_key:
+    state: present
+    key: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+
+- name: Add rabbitmq erlang gpg key
+  rpm_key:
+    state: present
+    key: https://packagecloud.io/rabbitmq/erlang/gpgkey
+
+- name: Add rabbitmq server repo
+  yum_repository:
+    name: rabbitmq_rabbitmq-server
+    description: Rabbitmq Server Official Repository - $basearch
+    baseurl: https://packagecloud.io/rabbitmq/rabbitmq-server/el/{{ ansible_distribution_major_version }}/$basearch
+    gpgcheck: 0
+    gpgkey: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+    state: present
+
+- name: Add rabbitmq erlang repo
+  yum_repository:
+    name: rabbitmq_erlang
+    description: Rabbitmq Erlang Official Repository - $basearch
+    baseurl: https://packagecloud.io/rabbitmq/erlang/el/{{ ansible_distribution_major_version }}/$basearch
+    gpgcheck: 0
+    gpgkey: https://packagecloud.io/rabbitmq/erlang/gpgkey
+    state: present
+
+- name: Clean yum metadata
+  command: yum clean all
+
+- name: Install rabbitmq server packages
+  yum: name={{ item }} state=present update_cache=yes
+  with_items:
+    - erlang
+    - rabbitmq-server
+

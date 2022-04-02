@@ -1,0 +1,14 @@
+distro types: rpm, deb
+
+install: redis, nfs server & client
+
+modify: 
+
+restart: redis-server, mount all, exportfs
+
+vars :
+redis_conf_bind: 0.0.0.0 # default is 127.0.0.1 ::1
+redis_conf_port: 6379
+redis_conf_master: ""
+redis_role: master
+redis_conf_slave: ""

@@ -1,0 +1,47 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Update systemd unit
+  template:
+    src: service.j2
+    dest: /lib/systemd/system/varnish.service
+    #backup: yes
+  when: ansible_service_mgr == 'systemd'
+  notify: restart varnish
+
+- name: Reload systemd service to pick changes
+  systemd:
+    name: varnish
+    daemon_reload: yes
+  when: ansible_service_mgr == 'systemd'
+
+- name: Update Debian and Ubuntu defaults for old init systems
+  template:
+    src: default.j2
+    dest: /etc/default/varnish
+    backup: yes
+  when: ansible_pkg_mgr == 'apt'
+  notify: restart varnish
+
+- name: Update Centos 6 defaults for old init systems
+  template:
+    src: default.j2
+    dest: /etc/sysconfig/varnish
+    backup: yes
+  when: ansible_distribution == 'CentOS' and ansible_distribution_version[0] == '6'
+  notify: restart varnish
+
+- name: Update Centos 7 defaults for old init systems
+  template:
+    src: default.j2
+    dest: /etc/varnish/varnish.params
+    backup: yes
+  when: ansible_distribution == 'CentOS' and ansible_distribution_version[0] == '7'
+  notify: restart varnish
+
+- name: Update config
+  template:
+    src: config.j2
+    dest: /etc/varnish/default.vcl
+    backup: yes
+  notify: restart varnish

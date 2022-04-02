@@ -1,0 +1,19 @@
+# Stop dance for mariadb maxscale in docker
+# =======================
+#
+# https://mariadb.com/kb/en/maxscale
+#
+[Unit]
+Description=MariaDB Maxscale service with docker compose
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+WorkingDirectory={{ compose_dir }}
+
+ExecStart=/usr/local/bin/docker-compose up
+ExecStop=/usr/local/bin/docker-compose down -v
+
+[Install]
+WantedBy=multi-user.target

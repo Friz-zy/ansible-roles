@@ -1,0 +1,17 @@
+- name: reload systemd
+  systemd: daemon_reload=yes
+
+- name: restart nginx
+  service: name=nginx state=restarted enabled=yes
+
+- name: restart filebeat
+  service: name=filebeat state=restarted enabled=yes
+
+- name: restart metricbeat
+  service: name=metricbeat state=restarted enabled=yes
+
+- name: restart packetbeat
+  service: name=packetbeat state=restarted enabled=yes
+
+- name: restart heartbeat-elastic
+  service: name=heartbeat-elastic state=restarted enabled=yes

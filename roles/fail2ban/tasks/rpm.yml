@@ -1,0 +1,8 @@
+---
+- name: Install fail2ban
+  yum:
+    name:
+      - fail2ban
+    state: present
+    update_cache: yes
+

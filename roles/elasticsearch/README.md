@@ -1,0 +1,16 @@
+distro types: rpm, deb
+
+install: openjdk, elasticsearch
+
+modify: /etc/elasticsearch/jvm.options, /etc/elasticsearch/elasticsearch.yml
+
+restart: elasticsearch
+
+vars :
+es_version: 6
+es_cluster_name: elasticsearch_production
+es_data_dir: /var/lib/elasticsearch
+es_logs_dir: /var/log/elasticsearch
+es_bind_host: 0.0.0.0 # default is 127.0.0.1
+es_transport_host: localhost
+es_transport_port: 9300

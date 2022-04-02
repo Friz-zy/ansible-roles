@@ -1,0 +1,6 @@
+- name: Install iptables-persistent
+  apt:
+    state: present
+    update_cache: yes
+    name:
+      - iptables-persistent

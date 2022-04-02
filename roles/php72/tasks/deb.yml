@@ -1,0 +1,101 @@
+- name: Enable external php repo
+  apt_repository:
+    repo: 'ppa:ondrej/php'
+
+- name: Install php7.2 necessary packages
+  apt:
+    state: present
+    update_cache: yes
+    name:
+      - php7.2-dev
+      - php7.2-fpm
+      - php7.2
+      - php7.2-bcmath
+      - php7.2-cli
+      - php7.2-common
+      - php7.2-curl
+      - php7.2-gd
+      - php7.2-gmp
+      - php7.2-intl
+      - php7.2-json
+      - php7.2-mbstring
+      #- php7.2-mcrypt
+      - php7.2-mysql
+      - php7.2-opcache
+      - php7.2-readline
+      - php7.2-xml
+      - php-memcache
+      - php-igbinary
+      - php-imagick
+      - php-redis
+      - php-geoip
+      - composer
+      # backend-yii
+      - php-gettext
+      - php7.2-bz2
+      - php7.2-imap
+      - php7.2-tidy
+      - php7.2-zip
+      - php7.2-xsl
+      - php-imagick
+      - php7.2-pgsql
+      - php-xdebug
+      - php-pear
+      - libmcrypt-dev
+      - libreadline-dev
+      - imagemagick
+      - librabbitmq-dev
+
+- name: Install php7.2 mcrypt
+  shell: yes '' | pecl install -f mcrypt-1.0.1
+  args:
+    creates: /usr/lib/php/20170718/mcrypt.so
+
+- name: Add php7.2 mcrypt to php.ini
+  lineinfile:
+    path: "{{item}}"
+    line: 'extension=mcrypt.so'
+  with_items:
+    - /etc/php/7.2/fpm/php.ini
+    - /etc/php/7.2/cli/php.ini
+
+- name: Install php7.2 amqp
+  shell: yes '' | pecl install -f amqp
+  args:
+    creates: /usr/lib/php/20170718/amqp.so
+
+- name: Add php7.2 amqp to php.ini
+  lineinfile:
+    path: "{{item}}"
+    line: 'extension=amqp.so'
+  with_items:
+    - /etc/php/7.2/fpm/php.ini
+    - /etc/php/7.2/cli/php.ini
+
+# - name: Add php7.2 dbase to php.ini
+#   lineinfile:
+#     path: "{{item}}"
+#     line: 'extension=dbase.so'
+#   with_items:
+#     - /etc/php/7.2/fpm/php.ini
+#     - /etc/php/7.2/cli/php.ini
+#
+# - name: Install php7.2 dbase
+#   shell: yes '' | pecl install -f dbase
+#   args:
+#     creates: /usr/lib/php/20160303/dbase.so
+
+- name: PHP fix pathinfo
+  lineinfile:
+    path: /etc/php/7.2/cli/php.ini
+    regexp: '^;?cgi.fix_pathinfo'
+    line: 'cgi.fix_pathinfo=0'
+
+- name: PHP fix serialize_precision
+  lineinfile:
+    path: /etc/php/7.2/{{item}}/php.ini
+    regexp: '^;?serialize_precision'
+    line: 'serialize_precision = -1'
+  with_items:
+    - fpm
+    - cli

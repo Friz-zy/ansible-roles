@@ -1,0 +1,27 @@
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - packetbeat=7.3.0
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Install necessary packages
+  package: name={{ item }} state=present
+  with_items:
+    - packetbeat-7.3.0
+  when: ansible_pkg_mgr == 'yum'
+
+- name: Modify packetbeat systemd service.
+  copy:
+    src: packetbeat.service
+    dest: /lib/systemd/system/packetbeat.service
+  notify: reload systemd
+  when: ansible_service_mgr == 'systemd'
+
+- name: Initial packetbeat configuration.
+  template:
+    src: packetbeat.yml.j2
+    dest: /etc/packetbeat/packetbeat.yml
+    mode: 0640
+  notify: restart packetbeat
+
+- meta: flush_handlers

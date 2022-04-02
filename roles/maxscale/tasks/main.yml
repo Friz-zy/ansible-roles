@@ -1,0 +1,26 @@
+---
+- name: Copy compose configs
+  copy:
+    src: compose/
+    dest: "{{ compose_dir }}"
+  notify: restart maxscale
+
+- name: Copy systemd unit
+  template:
+    src: service.j2
+    dest: /lib/systemd/system/maxscale.service
+  notify: reload systemctl
+
+- name: Copy config file
+  template:
+    src: maxscale.cnf.j2
+    dest: "{{ compose_dir }}/maxscale.cnf"
+    mode: 0644
+  notify: restart maxscale
+
+- name: Copy env file
+  template:
+    src: env.j2
+    dest: "{{ compose_dir }}/.env"
+    mode: 0640
+  notify: restart maxscale

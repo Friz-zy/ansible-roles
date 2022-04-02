@@ -1,0 +1,12 @@
+distro types: docker-compose
+
+install: galera-arbitrator
+
+modify: 
+
+restart: systemctl, galera-arbitrator
+
+vars:
+compose_dir: /opt/galera-arbitrator
+galera_cluster_name: galera
+galera_cluster_address: 'gcomm://'

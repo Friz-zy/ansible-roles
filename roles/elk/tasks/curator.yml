@@ -1,0 +1,36 @@
+- name: Install necessary packages
+  pip: name={{ item }}
+  with_items:
+    - elasticsearch-curator
+
+- name: Create curator configs directory
+  file:
+    path: /etc/curator
+    state: directory
+    mode: '0755'
+
+- name: Initial curator configuration.
+  template:
+    src: curator.yml.j2
+    dest: /etc/curator/curator.yml
+    mode: 0640
+
+- name: Copy curator actions
+  copy:
+    src: curator_actions.yml
+    dest: /etc/curator/curator_actions.yml
+
+- name: Add curator cronjob
+  cron:
+    name: elasticsearch curator
+    hour: '*'
+    minute: '*/10'
+    job: /usr/local/bin/curator --config /etc/curator/curator.yml /etc/curator/curator_actions.yml
+
+- name: Copy curator logrotate config
+  copy:
+    src: curator.logrotate
+    dest: /etc/logrotate.d/curator
+    owner: root
+    group: root
+    mode: 0644

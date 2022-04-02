@@ -1,0 +1,19 @@
+---
+- name: Copy compose configs
+  copy:
+    src: compose/
+    dest: "{{ compose_dir }}"
+  notify: restart galera-arbitrator
+
+- name: Copy systemd unit
+  template:
+    src: service.j2
+    dest: /lib/systemd/system/galera-arbitrator.service
+  notify: reload systemctl
+
+- name: Copy env file
+  template:
+    src: env.j2
+    dest: "{{ compose_dir }}/.env"
+    mode: 0640
+  notify: restart galera-arbitrator

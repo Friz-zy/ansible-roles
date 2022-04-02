@@ -1,0 +1,81 @@
+---
+- name: Install Zabbix Proxy Mysql
+  package:
+    name: "zabbix-proxy-mysql"
+    state: present
+  when: zabbix_proxy_conf_ConfigDatabase != '/var/lib/zabbix/zabbix.db'
+
+- name: Create Zabbix Proxy Mysql Database
+  mysql_db:
+    name: '{{ zabbix_proxy_conf_ConfigDatabase }}'
+    state: present
+  when: zabbix_proxy_conf_ConfigDatabase != '/var/lib/zabbix/zabbix.db'
+  register: zabbix_proxy_database
+
+- name: Create Zabbix Proxy Mysql User
+  mysql_user:
+    name: '{{ zabbix_proxy_conf_ConfigDbUser }}'
+    password: '{{ zabbix_proxy_conf_ConfigDbPass }}'
+    priv: '{{ zabbix_proxy_conf_ConfigDatabase }}.*:ALL'
+    state: present
+  when: zabbix_proxy_conf_ConfigDatabase != '/var/lib/zabbix/zabbix.db'
+
+- name: Import Zabbix Proxy Mysql Database Schema
+  shell: zcat /usr/share/doc/zabbix-proxy-mysql/schema.sql.gz | mysql {{ zabbix_proxy_conf_ConfigDatabase }}
+  when:
+    - zabbix_proxy_conf_ConfigDatabase != '/var/lib/zabbix/zabbix.db'
+    - zabbix_proxy_database.changed
+
+- name: Install Zabbix Proxy sqlite3
+  package:
+    name: "zabbix-proxy-sqlite3"
+    state: present
+  when: zabbix_proxy_conf_ConfigDatabase == '/var/lib/zabbix/zabbix.db'
+
+- name: Create zabbix lib directory
+  file:
+    name: /var/lib/zabbix
+    state: directory
+    owner: zabbix
+    group: zabbix
+  when: zabbix_proxy_conf_ConfigDatabase == '/var/lib/zabbix/zabbix.db'
+
+- name: Create sqlite database
+  shell: zcat /usr/share/doc/zabbix-proxy-sqlite3/schema.sql.gz | sqlite3 /var/lib/zabbix/zabbix.db
+  args:
+    creates: /var/lib/zabbix/zabbix.db
+  when: zabbix_proxy_conf_ConfigDatabase == '/var/lib/zabbix/zabbix.db'
+
+- name: Change owner of sqlite database
+  file:
+    name: /var/lib/zabbix/zabbix.db
+    owner: zabbix
+    group: zabbix
+  when: zabbix_proxy_conf_ConfigDatabase == '/var/lib/zabbix/zabbix.db'
+
+- name: Update the proxy config
+  lineinfile:
+    dest: /etc/zabbix/zabbix_proxy.conf
+    regexp: '^#?\s*{{ item.re }}\s*='
+    line: '{{ item.re }}={{ item.value }}'
+    backup: yes
+    insertbefore: BOF
+  with_items:
+    - { re: 'LogFileSize', value: '{{ zabbix_agent_conf_LogFileSize }}'}
+    - { re: 'DebugLevel', value: '{{ zabbix_agent_conf_DebugLevel }}'}
+    - { re: 'ListenIP', value: '{{ zabbix_agent_conf_ListenIP }}'}
+    - { re: 'Server', value: '{{ zabbix_proxy_conf_ServerActive }}'}
+    - { re: 'Hostname', value: '{{ inventory_hostname }}_proxy'}
+    #- { re: 'EnableRemoteCommands', value: '{{ zabbix_agent_conf_EnableRemoteCommands }}'}
+    #- { re: 'LogRemoteCommands', value: '{{ zabbix_agent_conf_LogRemoteCommands }}'}
+    - { re: 'Timeout', value: '{{ zabbix_agent_conf_Timeout }}'}
+    - { re: 'DBName', value: '{{ zabbix_proxy_conf_ConfigDatabase }}'}
+    - { re: 'DBUser', value: '{{ zabbix_proxy_conf_ConfigDbUser }}'}
+    - { re: 'DBPassword', value: '{{ zabbix_proxy_conf_ConfigDbPass }}'}
+    - { re: 'StartPollers', value: '{{ zabbix_proxy_conf_StartPollers }}'}
+    - { re: 'StartPollersUnreachable', value: '{{ zabbix_proxy_conf_StartPollersUnreachable }}'}
+    - { re: 'StartHTTPPollers', value: '{{ zabbix_proxy_conf_StartHTTPPollers }}'}
+    - { re: 'UnavailableDelay', value: '{{ zabbix_proxy_conf_UnavailableDelay }}'}
+    - { re: 'UnreachableDelay', value: '{{ zabbix_proxy_conf_UnreachableDelay }}'}
+    - { re: 'ConfigFrequency', value: '{{ zabbix_proxy_conf_ConfigFrequency }}'}
+  notify: restart zabbix-proxy

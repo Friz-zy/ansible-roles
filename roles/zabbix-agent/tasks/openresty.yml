@@ -1,0 +1,63 @@
+---
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-openresty.conf
+  notify: restart zabbix-agent
+
+- name: Copy addition zabbix check script
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - openresty-check.sh
+
+- name: Check that /etc/openresty/sites-enabled directory exists
+  stat: path=/etc/openresty/sites-enabled
+  register: openresty_sites_enabled
+
+- name: Copy addition zabbix check openresty config
+  copy:
+    src: "{{ item }}"
+    dest: /etc/openresty/sites-enabled/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - openresty.conf
+  when: openresty_sites_enabled.stat.exists
+  notify: reload openresty
+
+- name: Copy addition zabbix check openresty config
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/openresty/nginx/conf.d/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - openresty.conf
+  when: not openresty_sites_enabled.stat.exists
+  notify: reload openresty
+
+- name: Reload openresty before adding template into host
+  meta: flush_handlers
+
+- name: Get credentials from Zabbix server
+  command: cat /root/.zabbix.creds
+  register: credentials
+  run_once: true
+  delegate_to: "{{ zabbix_server }}"
+  check_mode: no    # execute even in dry-run mode
+
+- name: Add openresty template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-Openresty"

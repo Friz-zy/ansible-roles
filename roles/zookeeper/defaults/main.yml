@@ -1,0 +1,3 @@
+zookeeper_hosts:
+  - {{ inventory_hostname }}
+zookeeper_ip: {{ ansible_default_ipv4.address }}

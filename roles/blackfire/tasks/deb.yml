@@ -1,0 +1,18 @@
+---
+- name: Add blackfire gpg key
+  apt_key:
+    url: https://packagecloud.io/gpg.key
+    state: present
+
+- name: Add blackfire repo
+  apt_repository:
+    repo: deb https://packages.blackfire.io/debian any main
+    state: present
+
+- name: Install blackfire packages
+  apt: name={{ item }} state=present update_cache=yes cache_valid_time=60
+  with_items:
+    - blackfire-agent
+    - blackfire-php
+
+

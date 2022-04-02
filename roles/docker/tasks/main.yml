@@ -1,0 +1,23 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Install docker-compose packages globally
+  pip:
+    name: docker-compose
+    executable: pip3
+
+- name: Create docker network
+  docker_network:
+    name: ingress-shared
+    attachable: yes
+    internal: no
+
+- name: Create weekly crontab from cleaning all up
+  cron:
+    name: docker prune weekly
+    minute: 30
+    hour: 14
+    weekday: 2
+    user: 'root'
+    job: '/usr/bin/docker system prune --all --volumes --force'
+

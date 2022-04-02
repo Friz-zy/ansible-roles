@@ -1,0 +1,57 @@
+# https://docs.victoriametrics.com/vmauth.html
+# Arbitrary number of usernames may be put here.
+# Usernames must be unique.
+
+users:
+  # The user for querying local single-node VictoriaMetrics.
+  # All the requests to http://vmauth:8427 with the given Basic Auth (username:password)
+  # will be proxied to http://victoriametrics:8428 .
+  # For example, http://vmauth:8427/api/v1/query is proxied to http://victoriametrics:8428/api/v1/query
+- username: "{{ vm_user_admin }}"
+  password: "{{ vm_user_admin_pass }}"
+  url_prefix: "http://victoriametrics:8428"
+
+- username: "{{ vm_user_select }}"
+  password: "{{ vm_user_select_pass }}"
+  url_map:
+    - src_paths:
+        - /
+        - /metrics
+        - /api/v1/query # performs PromQL instant query.
+        - /api/v1/query_range # performs PromQL range query.
+        - /api/v1/series # performs series query.
+        - /api/v1/labels # returns a list of label names.
+        - /api/v1/label/<label_name>/values # returns values for the given <label_name> according to API.
+        - /federate # returns federated metrics.
+        - /api/v1/export # exports raw data in JSON line format. See this article for details.
+        - /api/v1/export/native # exports raw data in native binary format. It may be imported into another VictoriaMetrics via api/v1/import/native (see above).
+        - /api/v1/export/csv # exports data in CSV. It may be imported into another VictoriaMetrics via api/v1/import/csv (see above).
+        - /api/v1/status/tsdb # for time series stats. 
+        - /api/v1/status/active_queries # for currently executed active queries.
+        - /api/v1/status/top_queries # for listing the most frequently executed queries and queries taking the most duration.
+        - /render # implements Graphite Render API. See these docs. This functionality is available in Enterprise package.
+        - /metrics/find # searches Graphite metrics. See these docs.
+        - /metrics/expand # expands Graphite metrics. See these docs.
+        - /metrics/index.json # returns all the metric names. See these docs.
+        - /tags/tagSeries # registers time series. See these docs.
+        - /tags/tagMultiSeries # register multiple time series. See these docs.
+        - /tags # returns tag names. See these docs.
+        - /tags/<tag_name> # returns tag values for the given <tag_name>. See these docs.
+        - /tags/findSeries # returns series matching the given expr. See these docs.
+        - /tags/autoComplete/tags # returns tags matching the given tagPrefix and/or expr. See these docs.
+        - /tags/autoComplete/values # returns tag values matching the given valuePrefix and/or expr. See these docs.
+        - /tags/delSeries # deletes series matching the given path. See these docs.
+      url_prefix: "http://victoriametrics:8428"
+
+- username: "{{ vm_user_insert }}"
+  password: "{{ vm_user_insert_pass }}"
+  url_map:
+    - src_paths:
+        - /api/v1/write # for inserting data with Prometheus remote write API
+        - /write # for inserting data with Influx line protocol.
+        - /api/put # for accepting OpenTSDB HTTP /api/put requests.
+        - /api/v1/import # for importing data obtained via api/v1/export on vmselect (see below).
+        - /api/v1/import/native # for importing data obtained via api/v1/export/native on vmselect (see below).
+        - /api/v1/import/csv # for importing arbitrary CSV data. See these docs for details.
+        - /api/v1/import/prometheus # for importing data in Prometheus text exposition format and in OpenMetrics format. See these docs for details.
+      url_prefix: "http://victoriametrics:8428"

@@ -1,0 +1,41 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+  tags:
+    - elasticsearch
+    - logstash
+    - kibana
+    - apm-server
+
+- include: elasticsearch.yml
+  tags: elasticsearch
+
+- include: logstash.yml
+  tags: logstash
+
+- include: kibana.yml
+  tags: kibana
+
+- include: apm-server.yml
+  tags: apm-server
+
+- name: Create nginx configs
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-enabled/{{ elk_dns.site }}.conf
+  notify: restart nginx
+  tags:
+    - elasticsearch
+    - logstash
+    - kibana
+    - apm-server
+
+- name: Set elk domain as localhost
+  lineinfile: dest=/etc/hosts line="127.0.0.1 {{ elk_dns.site }}"
+  tags:
+    - elasticsearch
+    - logstash
+    - kibana
+    - apm-server
+
+- include: curator.yml
+  tags: curator

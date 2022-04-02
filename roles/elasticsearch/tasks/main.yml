@@ -1,0 +1,29 @@
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Set Java heapsize into half of all memory
+  lineinfile: dest=/etc/elasticsearch/jvm.options regexp="^{{item}}.*$" line="{{item}}{{ (ansible_memtotal_mb/2) | round | int }}m"
+  with_items:
+    - '-Xms'
+    - '-Xmx'
+  notify: restart elasticsearch
+
+- name: Initial Elasticsearch configuration
+  lineinfile: >
+    dest=/etc/elasticsearch/elasticsearch.yml
+    regexp="{{ item.regexp }}"
+    line="{{ item.line }}"
+    state=present
+  with_items:
+    - { regexp: '^#?\s*cluster\.name', line: "cluster.name: {{ es_cluster_name }}" }
+    - { regexp: '^#?\s*node\.name', line: "node.name: {{ inventory_hostname }}" }
+    - { regexp: '^#?\s*path\.data', line: "path.data: {{ es_data_dir }}" }
+    - { regexp: '^#?\s*path\.logs', line: "path.logs: {{ es_logs_dir }}" }
+    - { regexp: '^#?\s*network\.host', line: 'network.host: "{{ es_bind_host }}"' }
+    - { regexp: '^#?\s*transport\.host', line: 'transport.host: "{{ es_transport_host }}"' }
+    - { regexp: '^#?\s*transport\.tcp\.port', line: 'transport.tcp.port: "{{ es_transport_port }}"' }
+
+  notify: restart elasticsearch

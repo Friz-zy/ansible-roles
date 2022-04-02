@@ -1,0 +1,45 @@
+---
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-rabbitmq.conf
+  notify: restart zabbix-agent
+
+- name: Copy addition zabbix check script
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - rabbitmq-status.sh
+    - rabbitmq-nodes.sh
+
+- name: Allow 'zabbix' user to have passwordless /usr/sbin/rabbitmqctl
+  lineinfile:
+    dest: /etc/sudoers.d/zabbix
+    state: present
+    line: 'zabbix ALL = NOPASSWD: /usr/sbin/rabbitmqctl'
+    validate: 'visudo -cf %s'
+    create: yes
+    mode: 0440
+
+- name: Reload zabbix before adding template into host
+  meta: flush_handlers
+
+- name: Get credentials from Zabbix server
+  command: cat /root/.zabbix.creds
+  register: credentials
+  run_once: true
+  delegate_to: "{{ zabbix_server }}"
+  check_mode: no    # execute even in dry-run mode
+
+- name: Add rabbitmq template into host
+  delegate_to: "{{ zabbix_server }}"
+  command: /root/add_template.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -H "{{ inventory_hostname }}" -t "Template-Autodiscovery-RabbitMQ"

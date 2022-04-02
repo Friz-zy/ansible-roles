@@ -1,0 +1,11 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Copy custom haproxy logrotate config
+  copy:
+    src: haproxy.logrotate
+    dest: /etc/logrotate.d/haproxy
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes

@@ -1,0 +1,24 @@
+---
+- name: Add MariaDB gpg key
+  rpm_key:
+    state: present
+    key: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+
+- name: Add MariaDB repo
+  yum_repository:
+    name: mariabd
+    description: MariaDB 10.3 CentOS repository list
+    baseurl: https://yum.mariadb.org/10.3/centos{{ ansible_distribution_major_version }}-amd64
+    gpgcheck: 1
+    gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+    state: present
+
+- name: Clean yum metadata
+  command: yum clean all
+
+- name: Install MariaDB
+  yum: name={{ item }} state=present update_cache=yes
+  with_items:
+    - MariaDB-server
+    - MariaDB-client
+    - MySQL-python

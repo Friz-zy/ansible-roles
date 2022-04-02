@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  maxscale:
+    build: .
+    image: maxscale:latest
+    hostname: maxscale
+    container_name: maxscale
+    #ports:
+      #- '3306:3306'
+      #- '8989:8989'
+    volumes:
+      - ./maxscale.cnf:/etc/maxscale.cnf:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+networks:
+  default:
+    external:
+      name: ingress-shared

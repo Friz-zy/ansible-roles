@@ -1,0 +1,33 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+  tags:
+    - install
+
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+  tags:
+    - install
+
+- name: Copy custom telegraf configuration
+  template:
+    src: telegraf.conf.j2
+    dest: "{{ telegraf_config_path }}"
+    owner: "{{ telegraf_config_user }}"
+    group: "{{ telegraf_config_user }}"
+    mode: 0640
+    backup: yes
+  notify: reload telegraf
+  tags:
+    - configure
+
+- name: Check that the docker socket exists
+  stat:
+    path: "{{ docker_socket_path }}"
+  register: docker_socket
+  tags:
+    - configure
+
+- include: input-docker.yml
+  when: docker_socket.stat.exists
+  tags:
+    - configure

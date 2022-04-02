@@ -1,0 +1,70 @@
+- name: Enable external php repo
+  apt_repository:
+    repo: 'ppa:ondrej/php'
+
+- name: Install php7.1 necessary packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - php7.1-dev
+    - php7.1-fpm
+    - php7.1
+    - php7.1-bcmath
+    - php7.1-cli
+    - php7.1-common
+    - php7.1-curl
+    - php7.1-gd
+    - php7.1-gmp
+    - php7.1-intl
+    - php7.1-json
+    - php7.1-mbstring
+    - php7.1-mcrypt
+    - php7.1-mysql
+    - php7.1-opcache
+    - php7.1-readline
+    - php7.1-xml
+    - php7.1-redis
+    - php-memcache
+    - php-igbinary
+    - php-imagick
+    - php-redis
+    - php-geoip
+    - composer
+    # backend-yii
+    #- php-gettext
+    - php7.1-bz2
+    - php7.1-imap
+    - php7.1-tidy
+    - php7.1-zip
+    - php7.1-xsl
+    - php-imagick
+    - php7.1-pgsql
+    - php-xdebug
+    - imagemagick
+
+- name: Install php7.1 dbase
+  shell: yes '' | pecl install -f dbase
+  args:
+    creates: /usr/lib/php/20160303/dbase.so
+
+- name: Add php7.1 dbase to php.ini
+  lineinfile:
+    path: "{{item}}"
+    line: 'extension=dbase.so'
+  with_items:
+    - /etc/php/7.1/fpm/php.ini
+    - /etc/php/7.1/cli/php.ini
+
+- name: PHP fix pathinfo
+  lineinfile:
+    path: /etc/php/7.1/cli/php.ini
+    regexp: '^;?cgi.fix_pathinfo'
+    line: 'cgi.fix_pathinfo=0'
+
+- name: PHP fix serialize_precision
+  lineinfile:
+    path: /etc/php/7.1/{{item}}/php.ini
+    regexp: '^;?serialize_precision'
+    line: 'serialize_precision = -1'
+  with_items:
+    - fpm
+    - cli

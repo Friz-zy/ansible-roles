@@ -1,0 +1,39 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Create letsencrypt directory
+  file: name={{ letsencrypt_path }} state=directory
+
+- name: Install nginx sites http configs
+  template:
+    src: site.conf.j2
+    dest: '{{ letsencrypt_nginx_path }}/{{ item }}.conf'
+    force: no
+  with_items: "{{ letsencrypt_sites }}"
+  notify: reload {{ letsencrypt_nginx_binary }}
+
+- name: Reload nginx before executing letsencrypt
+  meta: flush_handlers
+
+- name: Create letsencrypt certificates
+  shell: letsencrypt certonly -n --webroot -w {{ letsencrypt_path }} -m {{ letsencrypt_email }} --agree-tos -d {{ item.split() | join(" -d ") }}
+  args:
+    creates: /etc/letsencrypt/live/{{ item }}
+  with_items: "{{ letsencrypt_sites }}"
+
+- name: Add letsencrypt cronjob for certs renewal
+  cron:
+    name: letsencrypt_renewal_{{ item.split()[0] }}
+    hour: 0
+    minute: 0
+    weekday: 0
+    job: letsencrypt --renew certonly -n --webroot -w {{ letsencrypt_path }} -m {{ letsencrypt_email }} --agree-tos -d {{ item.split() | join(" -d ") }}
+  with_items: "{{ letsencrypt_sites }}"
+
+- name: Add letsencrypt cronjob for nginx reload
+  cron:
+    name: reload nginx for applying new certificates
+    hour: 0
+    minute: 5
+    weekday: 0
+    job: service {{ letsencrypt_nginx_binary }} reload

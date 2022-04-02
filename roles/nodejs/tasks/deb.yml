@@ -1,0 +1,24 @@
+---
+- name: Add nodejs gpg key
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: Add nodejs {{ noderepo }} repo
+  apt_repository:
+    repo: deb https://deb.nodesource.com/{{ noderepo }} {{ ansible_distribution_release | lower }} main
+    state: present
+
+- name: Install nodejs packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - nodejs
+    #- npm
+
+- name: Install node.js packages globally
+  npm: name={{ item }} global=yes
+  with_items:
+    - gulp
+    - pm2
+    - n
+    - yarn

@@ -1,0 +1,120 @@
+---
+- name: Check if borgbackup already installed
+  command: which borg
+  changed_when: false
+  failed_when: false
+  register: borg_binary
+
+- name: Install borgbackup
+  package: name={{ item }} state=present
+  when:
+    - borg_binary is failed
+    - ansible_distribution != 'CentOS' or ansible_distribution_version >= '7'
+  with_items:
+    - python*-msgpack
+    - borgbackup
+
+- name: Install devtools-2 repository into Centos6
+  get_url:
+    url: https://people.centos.org/tru/devtools-2/devtools-2.repo
+    dest: /etc/yum.repos.d/devtools-2.repo
+  when:
+    - borg_binary is failed
+    - ansible_distribution == 'CentOS' and ansible_distribution_version < '7'
+
+- name: Install IUS repository into Centos6
+  yum:
+    name: https://centos6.iuscommunity.org/ius-release.rpm
+    state: present
+  when:
+    - borg_binary is failed
+    - ansible_distribution == 'CentOS' and ansible_distribution_version < '7'
+
+- name: Install borgbackup requirements on Centos6
+  package: name={{ item }} state=latest
+  when: ansible_distribution == 'CentOS' and ansible_distribution_version < '7'
+  with_items:
+    - python36u-pip
+    - python36u-devel
+    - python*-msgpack
+    - openssl-devel
+    - openssl
+    - libacl-devel
+    - libacl
+    - gcc
+    - gcc-c++
+    - redhat-rpm-config
+    - fuse-devel
+    - fuse
+    - pkgconfig
+    - binutils
+    - devtoolset-2-binutils-devel
+  when:
+    - borg_binary is failed
+
+- name: Install borgbackup with pip on Centos6
+  pip: name={{ item }} executable=pip3.6
+  when:
+    - borg_binary is failed
+    - ansible_distribution == 'CentOS' and ansible_distribution_version < '7'
+  with_items:
+    - msgpack
+    - borgbackup
+
+- name: Create borgbackup main directory
+  file: name={{ borgbackup_path }} state=directory
+  become: yes
+  become_user: '{{ borgbackup_user }}'
+
+- name: Create borgbackup logs directory
+  file: name=/var/log/borgbackup state=directory
+
+- name: Copy custome borgbackup logrotate config
+  copy:
+    src: borgbackup.logrotate
+    dest: /etc/logrotate.d/borgbackup
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Copy borgbackup backup script
+  copy:
+    src: create.sh
+    dest: /usr/local/bin/borgbackup-create.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create borgbackup backup script with configs
+  template:
+    src: create.sh.j2
+    dest: '{{ borgbackup_path }}/create.sh'
+    owner: '{{ borgbackup_user }}'
+    group: '{{ borgbackup_user }}'
+    mode: 0744
+  become: yes
+  become_user: '{{ borgbackup_user }}'
+
+- name: Copy borgbackup prune script
+  copy:
+    src: prune.sh
+    dest: /usr/local/bin/borgbackup-prune.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy borgbackup check script
+  copy:
+    src: check.sh
+    dest: /usr/local/bin/borgbackup-check.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create a 2048-bit SSH key for borgbackup
+  user:
+    name: '{{ borgbackup_user }}'
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: '{{ borgbackup_ssh_key }}'

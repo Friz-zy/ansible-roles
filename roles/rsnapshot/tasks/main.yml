@@ -1,0 +1,88 @@
+---
+- name: Install rsnapshot
+  package: name={{ item }} state=present
+  with_items:
+    - rsnapshot
+
+- name: Create rsnapshot main directory
+  file: name={{ rsnapshot_path }} state=directory
+  become: yes
+  become_user: '{{ rsnapshot_user }}'
+
+- name: Create rsnapshot logs directory
+  file:
+    name: /var/log/rsnapshot
+    state: directory
+    owner: '{{ rsnapshot_user }}'
+    group: '{{ rsnapshot_user }}'
+
+- name: Create rsnapshot pids directory
+  file:
+    name: /var/run/rsnapshot
+    state: directory
+    owner: '{{ rsnapshot_user }}'
+    group: '{{ rsnapshot_user }}'
+
+- name: Copy original rsnapshot config as backup
+  copy:
+    src: rsnapshot.conf.original
+    dest: /etc/rsnapshot.conf.original
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Copy custome rsnapshot logrotate config
+  copy:
+    src: rsnapshot.logrotate
+    dest: /etc/logrotate.d/rsnapshot
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Create rsnapshot config
+  template:
+    src: rsnapshot.conf.j2
+    dest: /etc/rsnapshot-{{ item }}.conf
+  with_items: "{{ groups['all'] }}"
+  when: "'backup_create' in hostvars[item] and hostvars[item]['backup_create']"
+
+- name: Create daily crontab
+  cron:
+    name: rsnapshot daily job for {{ item }}
+    minute: "{{ groups.all.index(item) % 6 * 10 | int  }}"
+    hour: "{{ groups.all.index(item) % 2 | int  }}"
+    day: '*'
+    month: '*'
+    weekday: '*/3'
+    user: "{{ rsnapshot_user }}"
+    job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ item }}.conf daily'
+  with_items: "{{ groups['all'] }}"
+  when: "'backup_create' in hostvars[item] and hostvars[item]['backup_create']"
+
+- name: Create weekly crontab
+  cron:
+    name: rsnapshot weekly job for {{ item }}
+    minute: "{{ groups.all.index(item) % 6 * 10 | int  }}"
+    hour: "{{ groups.all.index(item) % 2 | int  }}"
+    day: '*'
+    month: '*'
+    weekday: '1'
+    user: "{{ rsnapshot_user }}"
+    job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ item }}.conf weekly'
+  with_items: "{{ groups['all'] }}"
+  when: "'backup_create' in hostvars[item] and hostvars[item]['backup_create']"
+
+- name: Create monthly crontab
+  cron:
+    name: rsnapshot monthly job for {{ item }}
+    minute: "{{ groups.all.index(item) % 6 * 10 | int  }}"
+    hour: "{{ groups.all.index(item) % 2 | int  }}"
+    day: 25
+    month: '*'
+    weekday: '*'
+    user: "{{ rsnapshot_user }}"
+    job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ item }}.conf monthly'
+  with_items: "{{ groups['all'] }}"
+  when: "'backup_create' in hostvars[item] and hostvars[item]['backup_create']"

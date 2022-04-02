@@ -1,0 +1,34 @@
+- name: Install NFS server
+  package:
+    name:
+      - nfs-kernel-server
+    state: present
+  notify: restart nfs-kernel-server
+  when: nfs_export != ""
+
+- name: Install NFS client
+  package:
+    name:
+      - nfs-common
+    state: present
+  when: nfs_mount != ""
+
+- name: Update /etc/exports
+  blockinfile:
+    path: /etc/exports
+    block: "{{ nfs_export }}"
+    create: yes
+    backup: yes
+    marker: "# {mark} ANSIBLE MANAGED BLOCK NFS_EXPORT"
+  notify: restart nfs-kernel-server
+  when: nfs_export != ""
+
+- name: Update /etc/fstab
+  blockinfile:
+    path: /etc/fstab
+    block: "{{ nfs_mount }}"
+    create: yes
+    backup: yes
+    marker: "# {mark} ANSIBLE MANAGED BLOCK NFS_MOUNT"
+  notify: mount all
+  when: nfs_mount != ""

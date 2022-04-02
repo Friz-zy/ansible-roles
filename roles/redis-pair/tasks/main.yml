@@ -1,0 +1,40 @@
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- name: Set swappiness into 20 percents
+  sysctl:
+    name: vm.swappiness
+    value: '20'
+    state: present
+
+- name: Update Redis config
+  template:
+    src: "{{ redis_role }}-redis.conf"
+    dest: /etc/redis/redis.conf
+  notify: restart redis-server
+
+- name: Allow all users read /var/lib/redis
+  file:
+    path: /var/lib/redis
+    owner: redis
+    group: redis
+    mode: '0755'
+
+- name: Configure NFS Server
+  lineinfile:
+    path: /etc/exports
+    line: "/var/lib/redis      {{ redis_conf_master }}(ro,sync,root_squash,subtree_check)"
+    create: True
+  when: redis_role == "slave"
+  notify: reload exportfs
+
+- name: Configure NFS Slave
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ redis_conf_slave }}:/var/lib/redis    /var/lib/redis      nfs       ro,soft,intr,noatime,x-gvfs-show"
+    regexp: '^.*\s/var/lib/redis\s.*$'
+  when: redis_role == "master"
+  notify: mount all

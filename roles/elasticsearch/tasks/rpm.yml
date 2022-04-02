@@ -1,0 +1,24 @@
+---
+- name: Add Elastic repo gpg key
+  rpm_key:
+    state: present
+    key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+- name: Add Elastic repo
+  yum_repository:
+    name: elasticsearch
+    description: Elasticsearch repository for {{es_version}}.x packages
+    baseurl: https://artifacts.elastic.co/packages/{{es_version}}.x/yum
+    gpgcheck: 1
+    gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Clean yum metadata
+  command: yum clean all
+
+- name: Install Elasticsearch packages
+  yum: name={{ item }} state=present update_cache=yes
+  with_items:
+    - java-1.8.0-openjdk
+    - elasticsearch
+

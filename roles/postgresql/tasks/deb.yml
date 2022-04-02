@@ -1,0 +1,17 @@
+---
+- name: Add Postgresql server gpg key
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+
+- name: Add Postgresql server repo
+  apt_repository:
+    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release | lower }}-pgdg main
+    state: present
+
+- name: Install Postgresql 9.6
+  apt:
+    name:
+      - postgresql-9.6
+      - postgresql-9.6-postgis-2.5-scripts
+    state: present
+    update_cache: yes

@@ -1,0 +1,90 @@
+- include: deb.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- include: rpm.yml
+  when: ansible_pkg_mgr == 'yum'
+
+# Can't do full template because of existed custome config on hosts
+#- name: Copy the agent config
+#  template:
+#    src: zabbix_agentd.conf.j2
+#    dest: /etc/zabbix/zabbix_agentd.conf
+#    backup: yes
+#  notify: restart zabbix-agent
+
+- name: Update the agent config
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^#?\s*{{ item.re }}\s*='
+    line: '{{ item.re }}={{ item.value }}'
+    backup: yes
+    insertbefore: BOF
+  with_items:
+    - { re: 'LogFile', value: '{{  zabbix_agent_conf_LogFile  }}'}
+    - { re: 'PidFile', value: '{{ zabbix_agent_conf_PidFile }}'}
+    - { re: 'LogFileSize', value: '{{ zabbix_agent_conf_LogFileSize }}'}
+    - { re: 'DebugLevel', value: '{{ zabbix_agent_conf_DebugLevel }}'}
+    - { re: 'ListenIP', value: '{{ zabbix_agent_conf_ListenIP }}'}
+    - { re: 'ListenPort', value: '{{ zabbix_agent_conf_ListenPort }}'}
+    - { re: 'Server', value: '{%- if zabbix_agent_proxy %}{{zabbix_agent_proxy}},{%- endif %}{{ zabbix_agent_conf_Server }}'}
+    - { re: 'ServerActive', value: '{%- if zabbix_agent_proxy %}{{zabbix_agent_proxy}},{%- endif %}{{ zabbix_agent_conf_ServerActive }}'}
+    - { re: 'Hostname', value: '{{ zabbix_agent_conf_Hostname }}'}
+    - { re: 'HostMetadataItem', value: '{{ zabbix_agent_conf_HostMetadataItem }}'}
+    - { re: 'RefreshActiveChecks', value: '{{ zabbix_agent_conf_RefreshActiveChecks }}'}
+    - { re: 'EnableRemoteCommands', value: '{{ zabbix_agent_conf_EnableRemoteCommands }}'}
+    - { re: 'LogRemoteCommands', value: '{{ zabbix_agent_conf_LogRemoteCommands }}'}
+    - { re: 'Timeout', value: '{{ zabbix_agent_conf_Timeout }}'}
+    - { re: 'StartAgents', value: '{{ zabbix_agent_conf_StartAgents }}'}
+  notify: restart zabbix-agent
+
+- name: Copy addition zabbix configuration file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/{{ item }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - zabbix-curl.conf
+  notify: restart zabbix-agent
+
+- name: Add proxies into /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.value }} {{  item.key }}"
+  loop: "{{ lookup('dict', zabbix_proxies) }}"
+
+- meta: flush_handlers
+
+- name: Copy addition zabbix check scripts
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/zabbix-{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - check-port.sh
+
+- name: Check for services status
+  shell: service {{ item }} status
+  ignore_errors: true
+  register: status
+  with_items:
+    - nginx
+    - openresty
+    - redis
+    - varnish
+    - mysql
+    - postgresql
+    - rabbitmq-server
+    - elasticsearch
+    - haproxy
+    #- telegraf
+
+- include: "{{ item.item }}.yml"
+  when: "{{ item.rc }} == 0"
+  with_items: "{{ status.results }}"
+
+- include: proxy.yml
+  when: inventory_hostname in groups['zabbix_proxy']

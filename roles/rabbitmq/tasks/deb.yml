@@ -1,0 +1,22 @@
+---
+#- name: Add rabbitmq server gpg key
+#  apt_key:
+#    url: https://dl.bintray.com/rabbitmq/Keys/rabbitmq-release-signing-key.asc
+#    state: present
+
+#- name: Add rabbitmq server repo
+#  apt_repository:
+#    repo: deb https://dl.bintray.com/rabbitmq/debian {{ ansible_distribution_release | lower }} main
+#    state: present
+
+#- name: Add rabbitmq erlang repo
+#  apt_repository:
+#    repo: deb https://dl.bintray.com/rabbitmq/debian {{ ansible_distribution_release | lower }} erlang
+#    state: present
+
+- name: Install rabbitmq server packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    #- erlang
+    - rabbitmq-server
+
