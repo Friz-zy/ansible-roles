@@ -1,0 +1,33 @@
+# All hosts
+Host *
+# Security
+ForwardAgent no
+# Connection multiplexing
+ControlMaster auto
+ControlPersist 2m
+ControlPath ~/.ssh/ansible-%r@%h:%p
+User root
+
+{% for host in groups['all'] | sort() %}
+{% if hostvars[host].ansible_host is defined or
+hostvars[host].ssh_host is defined %}
+Host companyname-{{ host }}
+{% if hostvars[host].ansible_user is defined %}
+    User {{ hostvars[host].ansible_user }}
+{% endif %}
+{% if hostvars[host].ansible_host is defined %}
+    Hostname {{ hostvars[host].ansible_host }}
+{% elif hostvars[host].ssh_host is defined %}
+    Hostname {{ hostvars[host].ssh_host }}
+{% endif %}
+{% if hostvars[host].ansible_port is defined %}
+    Port {{ hostvars[host].ansible_port }}
+{% else %}
+    Port 22
+{% endif %}
+{% if hostvars[host].ssh_proxy_command is defined %}
+    ProxyCommand {{ hostvars[host].ssh_proxy_command }}
+{% endif %}
+
+{% endif %}
+{% endfor %}

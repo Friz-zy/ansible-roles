@@ -1,0 +1,24 @@
+---
+- name: Generate ssh config
+  hosts: localhost
+
+  tasks:
+    - name: Generate ssh_config from template
+      template: src=ssh_config.j2 dest=../../../ssh_config
+
+    - name: Generate ssh.cfg
+      shell: >
+        cp ssh_config ssh.cfg &&
+        sed -i.back "s| companyname-| |g" ssh.cfg &&
+        sed -i.back "s|ssh -W %h:%p|ssh -C -F ssh.cfg -W %h:%p|g" ssh.cfg &&
+        rm -f ssh.cfg.back
+      args:
+        chdir: ../../../
+
+    - name: Generate ssh_config_short
+      shell: >
+        cp ssh_config ssh_config_short &&
+        sed -i.back "s| companyname-| |g" ssh_config_short &&
+        rm -f ssh_config_short.back
+      args:
+        chdir: ../../../

@@ -1,0 +1,23 @@
+- name: Initial elastic beats
+  hosts: elk
+  become: yes
+  vars:
+    filebeat: true
+    metricbeat: false
+    packetbeat: false
+    heartbeat: false
+
+  roles:
+    - role: beats
+
+- name: Initial elastic beats
+  hosts: all
+  become: yes
+  vars:
+    filebeat: true
+    metricbeat: false
+    packetbeat: false
+    heartbeat: false
+
+  roles:
+    - role: beats

@@ -1,0 +1,63 @@
+---
+# https://www.zabbix.com/documentation/3.2/manual/api/reference/httptest/object#web_scenario
+
+# httptestid: string (readonly) ID of the web scenario.
+# hostid: (required) string ID of the host that the web scenario belongs to.
+# name: (required) string Name of the web scenario.
+# agent: string User agent string that will be used by the web scenario. Default: Zabbix
+# applicationid: string :ID of the application that the web scenario belongs to.
+# authentication: integer Authentication method that will be used by the web scenario. Possible values:
+# 0 - (default) none;
+# 1 - basic HTTP authentication;
+# 2 - NTLM authentication.
+# delay: integer Execution interval of the web scenario in seconds. Default: 60.
+# headers: string HTTP headers that will be sent when performing a request.
+# http_password: string Password used for authentication. Required for web scenarios with basic HTTP or NTLM authentication.
+# http_proxy: string Proxy that will be used by the web scenario given as http://[username[:password]@]proxy.example.com[:port].
+# http_user: string User name used for authentication. Required for web scenarios with basic HTTP or NTLM authentication.
+# nextcheck: timestamp (readonly) Time of the next web scenario execution.
+# retries: integer Number of times a web scenario will try to execute each step before failing. Default: 1.
+# ssl_cert_file: string Name of the SSL certificate file used for client authentication (must be in PEM format).
+# ssl_key_file: string Name of the SSL private key file used for client authentication (must be in PEM format).
+# ssl_key_password: string SSL private key password.
+# status: integer Whether the web scenario is enabled. Possible values are:
+#           0 - (default) enabled;
+#           1 - disabled.
+# templateid: string (readonly) ID of the parent template web scenario.
+# variables: string Web scenario variables.
+# verify_host: integer Whether to verify that the host name specified in the SSL certificate matches the one used in the scenario. Possible values are:
+#     0 - (default) skip host verification;
+#     1 - verify host.
+# verify_peer: integer Whether to verify the SSL certificate of the web server. Possible values are:
+#     0 - (default) skip peer verification;
+#     1 - verify peer.
+# steps:
+#   - Property: Type Description
+#     httpstepid: string (readonly) ID of the scenario step.
+#     name: (required) string Name of the scenario step.
+#     no: (required) integer Sequence number of the step in a web scenario.
+#     url: (required) string URL to be checked.
+#     follow_redirects: integer Whether to follow HTTP redirects. Possible values are:
+#     0 - dont follow redirects;
+#     1 - (default) follow redirects.
+#     headers: string HTTP headers that will be sent when performing a request. Scenario step headers will overwrite headers specified for the web scenario.
+#     httptestid: string (readonly) ID of the web scenario that the step belongs to.
+#     posts: string HTTP POST variables as a string.
+#     required: string Text that must be present in the response.
+#     retrieve_mode: integer Part of the HTTP response that the scenario step must retrieve. Possible values are:
+#     0 - (default) only body;
+#     1 - only headers.
+#     status_codes: string Ranges of required HTTP status codes separated by commas.
+#     timeout: "30"
+#     variables: string Scenario step variables.
+
+- name: "https://google.com"
+  retries: 4
+  host: "zabbix-server"
+  delay: 60
+  steps:
+    - name: "URL1"
+      timeout: "20"
+      status_codes: "200,301,404"
+      required: 'google'
+      url: "https://google.com"

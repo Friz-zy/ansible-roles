@@ -1,0 +1,61 @@
+---
+- name: Configure Monitoring
+  hosts: zabbix-server
+  become: yes
+  vars: []
+
+  tasks:
+    - name: Install python zabbix api packages
+      pip: name={{ item }}
+      with_items:
+        - pyzabbix
+        - PyYAML
+        - argparse
+        - pyopenssl
+        ##- ssl
+
+    - name: Copy sslchecks script
+      copy:
+        src: ../resources/files/sslchecks.py
+        dest: "{{item}}/sslchecks.py"
+        owner: root
+        group: root
+        mode: 0755
+      with_items:
+        - /root
+        - /usr/lib/zabbix/externalscripts
+
+    - name: Copy sslchecks configuration
+      copy:
+        src: ../resources/files/sslchecks.yml
+        dest: "{{item}}/sslchecks.yml"
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+        - /root
+        - /usr/lib/zabbix/externalscripts
+
+    - name: Copy webchecks script
+      copy:
+        src: ../resources/files/webchecks.py
+        dest: /root/webchecks.py
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Copy webchecks configuration
+      template:
+        src: ../resources/files/webchecks.yml
+        dest: /root/webchecks.yml
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Get credentials from Zabbix server
+      command: cat /root/.zabbix.creds
+      register: credentials
+      check_mode: no    # execute even in dry-run mode
+
+    - name: Configure webchecks from config file
+      command: /root/webchecks.py -u "{{ credentials.stdout.split()[0] }}" -p "{{ credentials.stdout.split()[1] }}" -c /root/webchecks.yml

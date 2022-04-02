@@ -1,0 +1,15 @@
+---
+- name: Install locales
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install locales
+      package: name="{{ item }}" state=present
+      with_items:
+        - language-pack-ru
+        - language-pack-ru-base
+        - language-pack-en
+        - language-pack-en-base
+      when: ansible_pkg_mgr == 'apt'
+

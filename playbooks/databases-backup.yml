@@ -1,0 +1,112 @@
+---
+- name: Setup databases
+  hosts: databases
+  become: yes
+
+  tasks:
+    - name: Add /dbbackup directory
+      file:
+        path: /dbbackup
+        state: directory
+
+    - name: Create mysql backup script
+      copy:
+        dest: /root/mysql_backup.sh
+        content: |
+            #!/bin/bash
+
+            BACKUP_DIR="/dbbackup"
+
+            databases=`/usr/bin/mysql -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|performance_schema)"`
+            echo $databases
+            for db in $databases; do
+                /usr/bin/mysqldump --routines --triggers --single-transaction --databases $db | sed -E 's/DEFINER=`[^`]+`@`[^`]+`/DEFINER=CURRENT_USER/g' | gzip -c > "$BACKUP_DIR/mysql-$db-`date +'%d-%m-%Y'`.sql.gz"
+                /usr/bin/mysqldump --no-data --databases $db | sed -E 's/DEFINER=`[^`]+`@`[^`]+`/DEFINER=CURRENT_USER/g' | gzip -c > "$BACKUP_DIR/mysql-$db-no-data-`date +'%d-%m-%Y'`.sql.gz"
+                echo "$db backuped"
+            done
+        force: no
+        mode: 755
+
+    - name: Create postgresql backup script
+      copy:
+        dest: /root/postgres_backup.sh
+        content: |
+            #!/bin/bash
+
+            BACKUP_DIR="/dbbackup"
+
+            databases=`/usr/bin/sudo -u postgres psql -q -A -t -c "SELECT datname FROM pg_database" | grep -Ev "(postgres|template1|template0)"`
+            echo $databases
+            for db in $databases; do
+                /usr/bin/sudo -u postgres pg_dump --no-owner $db | gzip > "$BACKUP_DIR/postgres-$db-`date +'%d-%m-%Y'`.sql.gz"
+                /usr/bin/sudo -u postgres pg_dump --schema-only $db | gzip > "$BACKUP_DIR/postgres-$db-no-data-`date +'%d-%m-%Y'`.sql.gz"
+                echo "$db backuped"
+            done
+        force: no
+        mode: 755
+
+    - name: Create cron job for mysql backup script
+      cron:
+        name: "mysql backup"
+        minute: "30"
+        hour: "1"
+        job: "/root/mysql_backup.sh > /dbbackup/mysql_`date +'\\%d-\\%m-\\%Y'`.log 2>&1"
+
+    - name: Create cron job for postgresql backup script
+      cron:
+        name: "postgresql backup"
+        minute: "0"
+        hour: "1"
+        job: "/root/postgres_backup.sh > /dbbackup/postgres_`date +'\\%d-\\%m-\\%Y'`.log 2>&1"
+
+    - name: Create cron job for deleting old bakcups
+      cron:
+        name: "delete old backups"
+        minute: "0"
+        hour: "2"
+        job: "/usr/bin/find /dbbackup/* -mtime +2 -delete"
+
+- name: Setup databases backup
+  hosts: backup-pc
+
+  tasks:
+    - name: Add main backup directory
+      file:
+        path: /home/backup/backup
+        state: directory
+        mode: 0755
+        owner: backup
+        group: backup
+
+    - name: Add backup directories
+      file:
+        path: /home/backup/backup/{{ item }}
+        state: directory
+        mode: 0755
+        owner: backup
+        group: backup
+      with_inventory_hostnames:
+        - databases
+
+    - name: Setup clearing cronjob
+      cron:
+        name: clear /home/backup/backup directory
+        minute: 0
+        hour: 5
+        user: backup
+        job: "/usr/bin/find /home/backup/backup/ -mtime +30 -delete"
+
+    - name: Copy ssh_config_short
+      copy:
+        src: ../ssh_config_short
+        dest: /etc/ssh/ssh_config
+
+    - name: Setup rsync cronjobs
+      cron:
+        name: copy dbbackup from {{ item }}
+        minute: "{{ groups.databases.index(item) % 6 * 10 | int  }}"
+        hour: 4
+        user: backup
+        job: '/usr/bin/rsync -avzh -e "ssh -o StrictHostKeyChecking=no -i /home/backup/.ssh/id_rsa" backup@{{ item }}:/dbbackup/* /home/backup/backup/{{ item }}'
+      with_inventory_hostnames:
+        - databases

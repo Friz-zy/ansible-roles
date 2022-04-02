@@ -1,0 +1,83 @@
+---
+- name: Configure users
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Set authorized keys into root user
+      blockinfile:
+        path: /root/.ssh/authorized_keys
+        block: |
+          {{ lookup('file', '../files/{{ item }}') }}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+      with_items: "{{ root_users }}"
+
+    - name: Create separate users with password
+      user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+        password: "{{ lookup('file', '../files/{{ item }}_password') }}"
+      when: "'{{ lookup('file', '../files/{{ item }}_password', errors='ignore') }}' != ''"
+      with_items: "{{ users }}"
+
+    - name: Create separate users without password
+      user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+      with_items: "{{ users }}"
+
+    - name: Add authorized keys to separate users
+      authorized_key:
+        user: "{{ item }}"
+        key: "{{ lookup('file', '../files/{{ item }}') }}"
+      with_items: "{{ users }}"
+
+    - name: Copy users private rsa key
+      copy:
+        dest: "/home/{{ item }}/.ssh/id_rsa"
+        src: "{{ item }}_id_rsa"
+        mode: 0600
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        backup: yes
+      when: "'{{ lookup('file', '../files/{{ item }}_id_rsa', errors='ignore') }}' != ''"
+      with_items: "{{ users }}"
+
+    - name: Copy users public rsa key
+      copy:
+        dest: "/home/{{ item }}/.ssh/id_rsa.pub"
+        src: "{{ item }}_id_rsa.pub"
+        mode: 0644
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        backup: yes
+      when: "'{{ lookup('file', '../files/{{ item }}_id_rsa.pub', errors='ignore') }}' != ''"
+      with_items: "{{ users }}"
+
+    - name: Delete deleted users
+      user:
+        name: "{{ item }}"
+        remove: yes
+        state: absent
+      with_items: "{{ deleted_users }}"
+
+    - name: Delete deleted users from root user as block
+      blockinfile:
+        state: absent
+        path: /root/.ssh/authorized_keys
+        block: |
+          {{ lookup('file', '../files/{{ item }}', errors='ignore')|default(' ') }}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+      with_items: "{{ deleted_users }}"
+
+    - name: Delete deleted users from root user as line
+      lineinfile:
+        state: absent
+        path: /root/.ssh/authorized_keys
+        regexp: "^{{ lookup('file', '../files/{{ item }}', errors='ignore')|default(' ') }}$"
+      with_items: "{{ deleted_users }}"

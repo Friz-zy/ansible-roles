@@ -1,0 +1,15 @@
+---
+- name: Setup zabbix agent
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: mariadb
+      when:
+        - inventory_hostname in groups['zabbix_proxy']
+        - zabbix_proxy_conf_ConfigDatabase != '/var/lib/zabbix/zabbix.db'
+    - role: zabbix-agent
+      when:
+        - zabbix_agent_discovery_host is defined and zabbix_agent_discovery_host
+        - zabbix_agent_discovery_port is defined and zabbix_agent_discovery_port

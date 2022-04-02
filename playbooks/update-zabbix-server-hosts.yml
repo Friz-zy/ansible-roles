@@ -1,0 +1,90 @@
+---
+- name: Configure Zabbix Proxies
+  hosts: zabbix_proxy
+  become: yes
+  vars: []
+
+  pre_tasks:
+    - name: Install python zabbix api packages
+      pip: name={{ item }}
+      run_once: true
+      delegate_to: zabbix-server
+      with_items:
+        - zabbix-api
+
+  tasks:
+    - name: Get credentials from Zabbix server
+      command: cat /root/.zabbix.creds
+      register: credentials
+      run_once: true
+      delegate_to: zabbix-server
+      check_mode: no    # execute even in dry-run mode
+
+    - name: Add proxies into Zabbix
+      zabbix_proxy:
+        server_url: http://127.0.0.1/zabbix
+        login_user: "{{ credentials.stdout.split()[0] }}"
+        login_password: "{{ credentials.stdout.split()[1] }}"
+        proxy_name: "{{ inventory_hostname }}_proxy"
+        description: "{{ inventory_hostname }} proxy"
+        status: active
+        state: present
+        interface:
+          type: 1
+          main: 1
+          useip: 1
+          ip: "{{ zabbix_agent_discovery_host }}"
+          dns: ""
+          port: "{{ zabbix_proxy_discovery_port }}"
+      when:
+        - zabbix_agent_discovery_host is defined and zabbix_agent_discovery_host
+        - zabbix_proxy_discovery_port is defined and zabbix_proxy_discovery_port
+      delegate_to: zabbix-server
+
+- name: Configure Zabbix Hosts
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars: []
+
+  pre_tasks:
+    - name: Install python zabbix api packages
+      pip: name={{ item }}
+      run_once: true
+      delegate_to: zabbix-server
+      with_items:
+        - zabbix-api
+
+  tasks:
+    - name: Get credentials from Zabbix server
+      command: cat /root/.zabbix.creds
+      register: credentials
+      run_once: true
+      delegate_to: zabbix-server
+      check_mode: no    # execute even in dry-run mode
+
+    - name: Add all hosts into Zabbix
+      zabbix_host:
+        force: no                      # prevent overriding current config in zabbix, after copying this configs into ansible should be yes
+        server_url: http://127.0.0.1/zabbix
+        login_user: "{{ credentials.stdout.split()[0] }}"
+        login_password: "{{ credentials.stdout.split()[1] }}"
+        host_name: "{{ inventory_hostname }}"
+        visible_name: ''
+        host_groups: "{{ zabbix_agent_host_groups }}"
+        link_templates: "{{ zabbix_agent_link_templates }}"
+        status: enabled
+        state: present
+        inventory_mode: "{{ zabbix_agent_inventory_mode }}"
+        interfaces:
+          - type: 1
+            main: 1
+            useip: 1
+            ip: "{{ zabbix_agent_discovery_host }}"
+            dns: ""
+            port: "{{ zabbix_agent_discovery_port }}"
+        proxy: "{{ zabbix_agent_proxy }}"
+      when:
+        - zabbix_agent_discovery_host is defined and zabbix_agent_discovery_host
+        - zabbix_agent_discovery_port is defined and zabbix_agent_discovery_port
+      delegate_to: zabbix-server

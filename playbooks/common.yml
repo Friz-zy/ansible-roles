@@ -1,0 +1,115 @@
+---
+
+- name: Initial server setup
+  hosts: all
+  become: yes
+
+  roles:
+    - role: users
+
+  pre_tasks:
+    - name: Add new hostname into hosts file
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item }} {{  inventory_hostname }}"
+      with_items:
+        - 127.0.0.1
+        - ::1
+
+    - name: Populate hosts file
+      blockinfile:
+        block: "{{ item.1 }}"
+        path: /etc/hosts
+        marker: "# {mark} ANSIBLE MANAGED BLOCK VARIABLE {{ item.0 }}"
+        insertbefore: BOF
+      loop:
+        - ["etc_hosts_all", "{{ etc_hosts_all }}"]
+        - ["etc_hosts_group", "{{ etc_hosts_group }}"]
+        - ["etc_hosts_host", "{{ etc_hosts_host }}"]
+
+    - name: Set hostname as in ansible inventory
+      hostname: name="{{ inventory_hostname }}"
+
+    #- name: Add new dns servers into /etc/resolv.conf
+      #lineinfile:
+        #path: /etc/resolv.conf
+        #line: "nameserver {{ item }}"
+      #with_items:
+        #- 1.1.1.1
+        #- 8.8.8.8
+
+    - name: Update apt keys
+      shell: apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com; apt update && apt autoremove -y
+      when: ansible_pkg_mgr == 'apt'
+
+    - name: Install minimum useful packages
+      package: name="{{ item }}" state=present
+      with_items:
+        - htop
+        - iotop
+        - mc
+        - nano
+        - python3-pip
+
+    - name: Install minimum useful ubuntu packages
+      package: name="{{ item }}" state=present
+      with_items:
+        - cloud-guest-utils
+      when: ansible_pkg_mgr == 'apt'
+
+    - name: Make sure we have a 'sudo' group
+      group:
+        name: sudo
+        state: present
+
+    - name: Allow sudo without password
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%sudo.*$'
+        line: '%sudo   ALL=(ALL:ALL) NOPASSWD:ALL'
+        validate: visudo -cf %s
+        backup: yes
+
+    - name: Disable "You have new mail" terminal message
+      lineinfile:
+        path: '/root/.bashrc'
+        line: 'unset MAILCHECK'
+        create: yes
+
+    - name: Set UsePAM to yes in the sshd config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?\s*UsePAM\s.*$'
+        line: 'UsePAM yes'
+        backup: yes
+
+    - name: Set PasswordAuthentication to no in the sshd config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?\s*PasswordAuthentication\s.*$'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: reload sshd
+      service: name=sshd state=reloaded enabled=yes
+
+    - name: Set manage_etc_hosts to false in Yandex Cloud
+      lineinfile:
+        path: /etc/cloud/cloud.cfg.d/95-yandex-cloud.cfg
+        regexp: '^manage_etc_hosts:.*$'
+        line: 'manage_etc_hosts: false'
+        backup: yes
+      when: ansible_hostname in groups['yandex']
+
+    - name: Set "vm.swappiness = 10"
+      sysctl:
+        name: vm.swappiness
+        value: '10'
+        sysctl_set: yes
+
+- import_playbook: update-firewall.yml
+- import_playbook: setup-locales.yml
+- import_playbook: deploy-beats.yml
+- import_playbook: deploy-telegraf.yml
+- import_playbook: files-backup.yml

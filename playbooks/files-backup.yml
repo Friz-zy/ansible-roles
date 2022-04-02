@@ -1,0 +1,89 @@
+---
+- name: Initial setup backup server
+  hosts: backup-pc
+  become: yes
+  vars:
+    rsnapshot_user: 'backup'
+    rsnapshot_path: '/home/backup/rsnapshot'
+    rsnapshot_ssh_key: '/home/backup/.ssh/id_rsa'
+
+  pre_tasks:
+    - name: Copy ssh_config_short
+      copy:
+        src: ../ssh_config_short
+        dest: /etc/ssh/ssh_config
+
+  roles:
+    - rsnapshot
+
+- name: Initial setup backup user
+  hosts: all
+  become: yes
+  vars:
+    rsnapshot_user: backup
+    rsnapshot_path: '~/rsnapshot'
+    rsnapshot_ssh_key: '~/.ssh/id_rsa'
+    item: "{{ inventory_hostname }}"
+
+  tasks:
+    - name: Add backup user to www-data if it's available
+      shell: id www-data && usermod -a -G www-data {{ rsnapshot_user }}
+      when: backup_create is defined and backup_create
+      ignore_errors: yes
+
+    - name: Add backup user to redis if it's available
+      shell: id redis && usermod -a -G redis {{ rsnapshot_user }}
+      when: backup_create is defined and backup_create
+      ignore_errors: yes
+
+    - name: Copy ssh_config_short
+      copy:
+        src: ../ssh_config_short
+        dest: /etc/ssh/ssh_config
+      delegate_to: backup-pc
+
+    - name: Create rsnapshot config
+      template:
+        src: ../roles/rsnapshot/templates/rsnapshot.conf.j2
+        dest: /etc/rsnapshot-{{ inventory_hostname }}.conf
+      when: "'backup_create' in hostvars[inventory_hostname] and hostvars[inventory_hostname]['backup_create']"
+      delegate_to: backup-pc
+
+    - name: Create daily crontab
+      cron:
+        name: rsnapshot daily job for {{ inventory_hostname }}
+        minute: "{{ groups.all.index(inventory_hostname) % 6 * 10 | int  }}"
+        hour: "{{ groups.all.index(inventory_hostname) % 2 | int  }}"
+        day: '*'
+        month: '*'
+        weekday: '*/3'
+        user: "{{ rsnapshot_user }}"
+        job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ inventory_hostname }}.conf daily'
+      when: "'backup_create' in hostvars[inventory_hostname] and hostvars[inventory_hostname]['backup_create']"
+      delegate_to: backup-pc
+
+    - name: Create weekly crontab
+      cron:
+        name: rsnapshot weekly job for {{ inventory_hostname }}
+        minute: "{{ groups.all.index(inventory_hostname) % 6 * 10 | int  }}"
+        hour: "{{ groups.all.index(inventory_hostname) % 2 | int  }}"
+        day: '*'
+        month: '*'
+        weekday: '1'
+        user: "{{ rsnapshot_user }}"
+        job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ inventory_hostname }}.conf weekly'
+      when: "'backup_create' in hostvars[inventory_hostname] and hostvars[inventory_hostname]['backup_create']"
+      delegate_to: backup-pc
+
+    - name: Create monthly crontab
+      cron:
+        name: rsnapshot monthly job for {{ inventory_hostname }}
+        minute: "{{ groups.all.index(inventory_hostname) % 6 * 10 | int  }}"
+        hour: "{{ groups.all.index(inventory_hostname) % 2 | int  }}"
+        day: 25
+        month: '*'
+        weekday: '*'
+        user: "{{ rsnapshot_user }}"
+        job: '/usr/bin/rsnapshot -c /etc/rsnapshot-{{ inventory_hostname }}.conf monthly'
+      when: "'backup_create' in hostvars[inventory_hostname] and hostvars[inventory_hostname]['backup_create']"
+      delegate_to: backup-pc
