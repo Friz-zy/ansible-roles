@@ -8,6 +8,5 @@ restart:
 
 vars:
 root_users: []
-users:
-  - backup
+users: []
 deleted_users: []
